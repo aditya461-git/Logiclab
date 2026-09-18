@@ -1688,3 +1688,584 @@ select:focus-visible {
     padding-right: 8px;
   }
 }
+/* =========================================================
+   LOGICLAB — RESPONSIVE MOBILE / TABLET
+   Existing desktop design remains unchanged
+========================================================= */
+
+/* ---------- General viewport safety ---------- */
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.logiclab {
+  width: 100%;
+  max-width: 100vw;
+  height: 100dvh;
+  min-width: 0;
+}
+
+/* ---------- Tablet ---------- */
+
+@media (max-width: 1100px) {
+  .topbar {
+    padding: 0 12px;
+  }
+
+  .toolbar {
+    gap: 5px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    max-width: 70%;
+  }
+
+  .toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .workspace {
+    grid-template-columns:
+      180px
+      minmax(0, 1fr)
+      280px;
+  }
+
+  .component-panel {
+    padding: 10px;
+  }
+
+  .right-panel {
+    font-size: 95%;
+  }
+
+  .gate-node {
+    width: 110px;
+  }
+
+  .io-node {
+    width: 95px;
+  }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 768px) {
+
+  /* ---------- App ---------- */
+
+  .logiclab {
+    height: 100dvh;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  /* ---------- Top bar ---------- */
+
+  .topbar {
+    height: auto;
+    min-height: 58px;
+    padding: 8px 10px;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .brand {
+    flex-shrink: 0;
+    gap: 8px;
+  }
+
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 7px;
+    font-size: 16px;
+  }
+
+  .brand h1 {
+    font-size: 15px;
+  }
+
+  .brand span {
+    display: none;
+  }
+
+  .toolbar {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 0;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .toolbar button {
+    flex-shrink: 0;
+    min-height: 38px;
+    padding: 8px 10px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  /* ---------- Main workspace ---------- */
+
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: calc(100dvh - 58px);
+    overflow: hidden;
+  }
+
+  /* =====================================================
+     COMPONENT PANEL
+  ===================================================== */
+
+  .component-panel {
+    flex: 0 0 auto;
+    width: 100%;
+    max-height: 30dvh;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 9px 10px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-heading {
+    margin-bottom: 7px;
+  }
+
+  .panel-heading h2 {
+    font-size: 12px;
+  }
+
+  .component-search {
+    min-height: 38px;
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+
+  /*
+     On mobile, components are arranged in a grid
+     so the panel doesn't become extremely tall.
+  */
+
+  .component-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .component-item {
+    min-height: 42px;
+    padding: 7px;
+    font-size: 10px;
+    touch-action: manipulation;
+  }
+
+  .component-symbol {
+    width: 30px;
+    height: 25px;
+    font-size: 8px;
+  }
+
+  /* =====================================================
+     CANVAS
+  ===================================================== */
+
+  .canvas-area {
+    flex: 1 1 45dvh;
+    min-height: 280px;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .canvas-toolbar {
+    height: auto;
+    min-height: 46px;
+    padding: 6px 8px;
+    gap: 6px;
+    overflow-x: auto;
+    justify-content: flex-start;
+    scrollbar-width: none;
+  }
+
+  .canvas-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .canvas-title {
+    flex-shrink: 0;
+  }
+
+  .canvas-title strong {
+    font-size: 11px;
+  }
+
+  .canvas-title span {
+    display: none;
+  }
+
+  .canvas-actions {
+    flex-shrink: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .canvas-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .canvas-actions button,
+  .canvas-toolbar button {
+    min-height: 36px;
+    padding: 7px 9px;
+    font-size: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .canvas-area .react-flow {
+    min-height: 0;
+    width: 100%;
+  }
+
+  /* ---------- React Flow touch support ---------- */
+
+  .react-flow {
+    touch-action: none;
+  }
+
+  .react-flow__pane {
+    cursor: default;
+  }
+
+  .react-flow__controls {
+    transform: scale(0.92);
+    transform-origin: bottom left;
+  }
+
+  .react-flow__minimap {
+    display: none;
+  }
+
+  /* ---------- Nodes ---------- */
+
+  .gate-node {
+    width: 105px;
+    min-height: 88px;
+    padding: 9px 11px;
+  }
+
+  .gate-svg {
+    width: 68px;
+    height: 50px;
+  }
+
+  .gate-title {
+    max-width: 95px;
+    font-size: 9px;
+  }
+
+  .gate-state {
+    font-size: 8px;
+  }
+
+  .io-node {
+    width: 92px;
+    min-height: 64px;
+  }
+
+  .io-value {
+    width: 27px;
+    height: 27px;
+    font-size: 12px;
+  }
+
+  .io-label {
+    font-size: 9px;
+  }
+
+  .logic-handle {
+    width: 11px !important;
+    height: 11px !important;
+  }
+
+  .handle-label {
+    font-size: 8px;
+    left: -24px;
+  }
+
+  /* ---------- Status ---------- */
+
+  .statusbar {
+    left: 7px;
+    bottom: 7px;
+    max-width: calc(100% - 14px);
+    padding: 5px 7px;
+    font-size: 9px;
+  }
+
+  /* =====================================================
+     RIGHT PANEL
+  ===================================================== */
+
+  .right-panel {
+    flex: 0 0 auto;
+    width: 100%;
+    max-height: 45dvh;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+
+  .properties-panel,
+  .analysis-panel,
+  .truth-panel {
+    padding: 10px;
+  }
+
+  .property-row strong {
+    max-width: 55%;
+  }
+
+  /* ---------- Clock ---------- */
+
+  .clock-status {
+    min-height: 42px;
+  }
+
+  .clock-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .clock-actions button {
+    flex: 1;
+    min-height: 38px;
+  }
+
+  /* ---------- K-Map ---------- */
+
+  .kmap-wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .kmap-table {
+    min-width: 260px;
+  }
+
+  .kmap-cell {
+    min-height: 46px;
+  }
+
+  .kmap-final-expression span {
+    font-size: 16px;
+  }
+
+  /* ---------- Truth table ---------- */
+
+  .truth-panel {
+    max-height: none;
+  }
+
+  .truth-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .truth-panel table {
+    min-width: 420px;
+  }
+
+  /* ---------- Inputs ---------- */
+
+  .properties-panel .info-card input,
+  .analysis-panel input,
+  .analysis-panel select {
+    min-height: 38px;
+    font-size: 12px;
+  }
+
+  .full {
+    min-height: 40px;
+    font-size: 11px;
+  }
+
+  /* ---------- Expression ---------- */
+
+  .expression-box {
+    min-height: 60px;
+    font-size: 10px;
+  }
+}
+
+/* =========================================================
+   VERY SMALL PHONES
+========================================================= */
+
+@media (max-width: 430px) {
+
+  .topbar {
+    padding: 7px;
+  }
+
+  .brand-mark {
+    width: 30px;
+    height: 30px;
+  }
+
+  .brand h1 {
+    font-size: 14px;
+  }
+
+  .toolbar button {
+    min-height: 36px;
+    padding: 7px 8px;
+    font-size: 10px;
+  }
+
+  .component-panel {
+    max-height: 28dvh;
+  }
+
+  .component-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .component-item {
+    min-height: 40px;
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .component-symbol {
+    width: 27px;
+    height: 23px;
+  }
+
+  .canvas-area {
+    min-height: 260px;
+  }
+
+  .canvas-toolbar {
+    min-height: 44px;
+  }
+
+  .canvas-actions button,
+  .canvas-toolbar button {
+    min-height: 34px;
+    padding: 6px 8px;
+  }
+
+  .right-panel {
+    max-height: 47dvh;
+  }
+
+  .gate-node {
+    width: 96px;
+    min-height: 82px;
+  }
+
+  .io-node {
+    width: 86px;
+  }
+
+  .gate-svg {
+    width: 62px;
+    height: 46px;
+  }
+}
+
+/* =========================================================
+   LANDSCAPE PHONE
+========================================================= */
+
+@media (max-width: 900px) and (orientation: landscape) {
+
+  .topbar {
+    min-height: 50px;
+    padding: 5px 9px;
+  }
+
+  .workspace {
+    height: calc(100dvh - 50px);
+  }
+
+  .component-panel {
+    max-height: 34dvh;
+  }
+
+  .canvas-area {
+    min-height: 240px;
+  }
+
+  .right-panel {
+    max-height: 50dvh;
+  }
+
+  .component-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* =========================================================
+   MOBILE SCROLLBAR
+========================================================= */
+
+@media (max-width: 768px) {
+
+  .component-panel::-webkit-scrollbar,
+  .right-panel::-webkit-scrollbar,
+  .truth-scroll::-webkit-scrollbar,
+  .kmap-wrapper::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  .component-panel::-webkit-scrollbar-thumb,
+  .right-panel::-webkit-scrollbar-thumb,
+  .truth-scroll::-webkit-scrollbar-thumb,
+  .kmap-wrapper::-webkit-scrollbar-thumb {
+    background: #35445a;
+    border-radius: 10px;
+  }
+}
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
