@@ -2429,3 +2429,108 @@ body {
     font-size: 11px;
   }
 }
+/* =========================================================
+   LOGICLAB — ADVANCED COMPONENTS & DIGITAL TOOLS
+========================================================= */
+
+.logic-expression-input {
+  width: 100%;
+  resize: vertical;
+  padding: 9px 10px;
+  border: 1px solid #344257;
+  border-radius: 7px;
+  outline: none;
+  background: #0e1621;
+  color: #e5edf8;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.logic-expression-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(91, 156, 255, 0.08);
+}
+
+.feature-panel {
+  border-top: 1px solid rgba(52, 66, 88, 0.35);
+}
+
+.feature-button-grid {
+  display: grid;
+  gap: 7px;
+}
+
+.converter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.converter-grid select,
+.feature-panel select {
+  width: 100%;
+  padding: 8px 9px;
+  border: 1px solid #344257;
+  border-radius: 7px;
+  background: #0e1621;
+  color: #e5edf8;
+  font-size: 11px;
+}
+
+.feature-panel > input {
+  width: 100%;
+  padding: 8px 9px;
+  border: 1px solid #344257;
+  border-radius: 7px;
+  background: #0e1621;
+  color: #e5edf8;
+  outline: none;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+.conversion-result,
+.tool-note,
+.tool-error {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 7px;
+  font-size: 10px;
+  word-break: break-word;
+}
+
+.conversion-result {
+  border: 1px solid rgba(69, 212, 131, 0.35);
+  background: rgba(69, 212, 131, 0.08);
+  color: var(--green);
+  font-family: "Cascadia Code", "Consolas", monospace;
+}
+
+.tool-note {
+  border: 1px solid #2b394d;
+  background: #151e2b;
+  color: var(--text-muted);
+}
+
+.tool-error {
+  border: 1px solid rgba(255, 107, 107, 0.35);
+  background: rgba(255, 107, 107, 0.08);
+  color: #ff9a9a;
+}
+
+/* Advanced component nodes need a little more room for their handles. */
+.gate-node:has(.logic-handle:nth-of-type(6)) {
+  min-width: 130px;
+}
+
+@media (max-width: 768px) {
+  .converter-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .logic-expression-input {
+    min-height: 80px;
+  }
+}

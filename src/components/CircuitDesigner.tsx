@@ -134,6 +134,21 @@ const gateTypes: GateType[] = [
   "XNOR",
   "MUX",
   "DEMUX",
+  "MUX_4_1",
+  "MUX_8_1",
+  "DEMUX_1_4",
+  "DEMUX_1_8",
+  "HALF_ADDER",
+  "FULL_ADDER",
+  "HALF_SUBTRACTOR",
+  "FULL_SUBTRACTOR",
+  "SERIAL_ADDER",
+  "PARALLEL_ADDER",
+  "BCD_ADDER",
+  "SR_LATCH",
+  "D_LATCH",
+  "JK_LATCH",
+  "T_LATCH",
   "DECODER",
   "ENCODER",
   "SR_FLIP_FLOP",
@@ -156,6 +171,21 @@ const gateNames: Record<GateType, string> = {
   XNOR: "XNOR",
   MUX: "MUX 2:1",
   DEMUX: "DEMUX 1:2",
+  MUX_4_1: "MUX 4:1",
+  MUX_8_1: "MUX 8:1",
+  DEMUX_1_4: "DEMUX 1:4",
+  DEMUX_1_8: "DEMUX 1:8",
+  HALF_ADDER: "Half Adder",
+  FULL_ADDER: "Full Adder",
+  HALF_SUBTRACTOR: "Half Subtractor",
+  FULL_SUBTRACTOR: "Full Subtractor",
+  SERIAL_ADDER: "Serial Adder",
+  PARALLEL_ADDER: "4-bit Parallel Adder",
+  BCD_ADDER: "BCD Adder",
+  SR_LATCH: "SR Latch",
+  D_LATCH: "D Latch",
+  JK_LATCH: "JK Latch",
+  T_LATCH: "T Latch",
   DECODER: "Decoder 2:4",
   ENCODER: "Encoder 4:2",
   SR_FLIP_FLOP: "SR Flip-Flop",
@@ -275,6 +305,45 @@ function getInputHandleIds(
 
     case "DEMUX":
       return ["input", "select"];
+
+    case "MUX_4_1":
+      return ["input-0", "input-1", "input-2", "input-3", "select-0", "select-1"];
+
+    case "MUX_8_1":
+      return ["input-0", "input-1", "input-2", "input-3", "input-4", "input-5", "input-6", "input-7", "select-0", "select-1", "select-2"];
+
+    case "DEMUX_1_4":
+      return ["input", "select-0", "select-1"];
+
+    case "DEMUX_1_8":
+      return ["input", "select-0", "select-1", "select-2"];
+
+    case "HALF_ADDER":
+    case "HALF_SUBTRACTOR":
+      return ["a", "b"];
+
+    case "FULL_ADDER":
+    case "FULL_SUBTRACTOR":
+      return ["a", "b", "carry-in"];
+
+    case "SERIAL_ADDER":
+      return ["a", "b", "clock"];
+
+    case "PARALLEL_ADDER":
+    case "BCD_ADDER":
+      return ["a0", "a1", "a2", "a3", "b0", "b1", "b2", "b3", "carry-in"];
+
+    case "SR_LATCH":
+      return ["set", "reset"];
+
+    case "D_LATCH":
+      return ["d", "enable"];
+
+    case "JK_LATCH":
+      return ["j", "k", "enable"];
+
+    case "T_LATCH":
+      return ["t", "enable"];
 
     case "DECODER":
       return [
@@ -735,6 +804,120 @@ function calculateNextState(
           };
 
           break;
+        }
+
+        case "MUX_4_1": {
+          const index = (getHandleValue("select-1") ? 2 : 0) + (getHandleValue("select-0") ? 1 : 0);
+          node.data.value = getHandleValue(`input-${index}`);
+          break;
+        }
+
+        case "MUX_8_1": {
+          const index = (getHandleValue("select-2") ? 4 : 0) + (getHandleValue("select-1") ? 2 : 0) + (getHandleValue("select-0") ? 1 : 0);
+          node.data.value = getHandleValue(`input-${index}`);
+          break;
+        }
+
+        case "DEMUX_1_4": {
+          const data = getHandleValue("input");
+          const index = (getHandleValue("select-1") ? 2 : 0) + (getHandleValue("select-0") ? 1 : 0);
+          node.data.value = data;
+          node.data.outputValues = Object.fromEntries(Array.from({ length: 4 }, (_, i) => [`output-${i}`, data && i === index]));
+          break;
+        }
+
+        case "DEMUX_1_8": {
+          const data = getHandleValue("input");
+          const index = (getHandleValue("select-2") ? 4 : 0) + (getHandleValue("select-1") ? 2 : 0) + (getHandleValue("select-0") ? 1 : 0);
+          node.data.value = data;
+          node.data.outputValues = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`output-${i}`, data && i === index]));
+          break;
+        }
+
+        case "HALF_ADDER": {
+          const a = getHandleValue("a"), b = getHandleValue("b");
+          node.data.value = a !== b;
+          node.data.outputValues = { sum: a !== b, carry: a && b };
+          break;
+        }
+
+        case "FULL_ADDER": {
+          const a = getHandleValue("a"), b = getHandleValue("b"), cin = getHandleValue("carry-in");
+          const sum = Boolean(a !== b) !== cin;
+          node.data.value = sum;
+          node.data.outputValues = { sum, carry: (a && b) || (a && cin) || (b && cin) };
+          break;
+        }
+
+        case "HALF_SUBTRACTOR": {
+          const a = getHandleValue("a"), b = getHandleValue("b");
+          node.data.value = a !== b;
+          node.data.outputValues = { sum: a !== b, carry: !a && b };
+          break;
+        }
+
+        case "FULL_SUBTRACTOR": {
+          const a = getHandleValue("a"), b = getHandleValue("b"), bin = getHandleValue("carry-in");
+          const diff = Boolean(a !== b) !== bin;
+          const borrow = (!a && b) || (!a && bin) || (b && bin);
+          node.data.value = diff;
+          node.data.outputValues = { sum: diff, carry: borrow };
+          break;
+        }
+
+        case "SERIAL_ADDER": {
+          const a = getHandleValue("a"), b = getHandleValue("b");
+          const carryIn = node.data.state ?? false;
+          const sum = Boolean(a !== b) !== carryIn;
+          const carry = (a && b) || (a && carryIn) || (b && carryIn);
+          node.data.state = carry;
+          node.data.value = sum;
+          node.data.outputValues = { sum, carry };
+          break;
+        }
+
+        case "PARALLEL_ADDER":
+        case "BCD_ADDER": {
+          let carry = getHandleValue("carry-in");
+          const outputs: Record<string, boolean> = {};
+          let aValue = 0, bValue = 0;
+          for (let i = 0; i < 4; i++) {
+            if (getHandleValue(`a${i}`)) aValue |= 1 << i;
+            if (getHandleValue(`b${i}`)) bValue |= 1 << i;
+          }
+          let total = aValue + bValue + (carry ? 1 : 0);
+          if (node.data.gateType === "BCD_ADDER" && total > 9) total += 6;
+          for (let i = 0; i < 4; i++) outputs[`sum-${i}`] = Boolean(total & (1 << i));
+          outputs["carry-out"] = total > 15 || (node.data.gateType === "BCD_ADDER" && aValue + bValue + (carry ? 1 : 0) > 9);
+          node.data.value = total !== 0;
+          node.data.outputValues = outputs;
+          break;
+        }
+
+        case "SR_LATCH": {
+          const set = getHandleValue("set"), reset = getHandleValue("reset");
+          let q = node.data.state ?? false;
+          if (set && !reset) q = true; else if (reset && !set) q = false;
+          node.data.state = q; node.data.value = q; node.data.outputValues = { q, "q-bar": !q }; break;
+        }
+
+        case "D_LATCH": {
+          const d = getHandleValue("d"), en = getHandleValue("enable");
+          let q = node.data.state ?? false; if (en) q = d;
+          node.data.state = q; node.data.value = q; node.data.outputValues = { q, "q-bar": !q }; break;
+        }
+
+        case "JK_LATCH": {
+          const j = getHandleValue("j"), k = getHandleValue("k"), en = getHandleValue("enable");
+          let q = node.data.state ?? false;
+          if (en) { if (j && k) q = !q; else if (j) q = true; else if (k) q = false; }
+          node.data.state = q; node.data.value = q; node.data.outputValues = { q, "q-bar": !q }; break;
+        }
+
+        case "T_LATCH": {
+          const t = getHandleValue("t"), en = getHandleValue("enable");
+          let q = node.data.state ?? false; if (en && t) q = !q;
+          node.data.state = q; node.data.value = q; node.data.outputValues = { q, "q-bar": !q }; break;
         }
 
         case "OUTPUT": {
@@ -1592,6 +1775,138 @@ function getMintermFromCell(
   );
 }
 
+
+/* =========================================================
+   BOOLEAN EXPRESSION ENGINE
+   ========================================================= */
+
+type BoolAst =
+  | { kind: "var"; name: string }
+  | { kind: "not"; child: BoolAst }
+  | { kind: "and"; left: BoolAst; right: BoolAst }
+  | { kind: "or"; left: BoolAst; right: BoolAst };
+
+function tokenizeBooleanExpression(expression: string): string[] {
+  const normalized = expression
+    .replace(/[¬!~]/g, "!")
+    .replace(/[·*]/g, "*")
+    .replace(/[+∨]/g, "+")
+    .replace(/\s+/g, "");
+  const tokens = normalized.match(/[A-Za-z][A-Za-z0-9_]*|[01]|[+*.!()']/g) ?? [];
+  return tokens;
+}
+
+function parseBooleanExpression(expression: string): { ast: BoolAst; variables: string[] } {
+  const tokens = tokenizeBooleanExpression(expression);
+  let index = 0;
+  const variables = new Set<string>();
+
+  const peek = () => tokens[index];
+  const take = () => tokens[index++];
+  const startsAtom = (token: string | undefined) => !!token && (/^[A-Za-z0-9]/.test(token) || token === "(" || token === "!");
+
+  const parseOr = (): BoolAst => {
+    let node = parseAnd();
+    while (peek() === "+") {
+      take();
+      node = { kind: "or", left: node, right: parseAnd() };
+    }
+    return node;
+  };
+
+  const parseAnd = (): BoolAst => {
+    let node = parseUnary();
+    while (peek() === "*" || peek() === "." || startsAtom(peek())) {
+      if (peek() === "*" || peek() === ".") take();
+      node = { kind: "and", left: node, right: parseUnary() };
+    }
+    return node;
+  };
+
+  const parseUnary = (): BoolAst => {
+    if (peek() === "!") {
+      take();
+      return { kind: "not", child: parseUnary() };
+    }
+    let node = parsePrimary();
+    while (peek() === "'") {
+      take();
+      node = { kind: "not", child: node };
+    }
+    return node;
+  };
+
+  const parsePrimary = (): BoolAst => {
+    const token = take();
+    if (!token) throw new Error("Unexpected end of expression.");
+    if (token === "(") {
+      const node = parseOr();
+      if (take() !== ")") throw new Error("Missing closing parenthesis.");
+      return node;
+    }
+    if (token === "0" || token === "1") {
+      return { kind: "var", name: token };
+    }
+    if (/^[A-Za-z]/.test(token)) {
+      variables.add(token);
+      return { kind: "var", name: token };
+    }
+    throw new Error(`Unexpected token: ${token}`);
+  };
+
+  const ast = parseOr();
+  if (index < tokens.length) throw new Error(`Unexpected token: ${tokens[index]}`);
+  return { ast, variables: [...variables].sort() };
+}
+
+function evaluateBooleanAst(ast: BoolAst, values: Record<string, boolean>): boolean {
+  switch (ast.kind) {
+    case "var": return ast.name === "1" ? true : ast.name === "0" ? false : !!values[ast.name];
+    case "not": return !evaluateBooleanAst(ast.child, values);
+    case "and": return evaluateBooleanAst(ast.left, values) && evaluateBooleanAst(ast.right, values);
+    case "or": return evaluateBooleanAst(ast.left, values) || evaluateBooleanAst(ast.right, values);
+  }
+}
+
+function astToExpression(ast: BoolAst): string {
+  switch (ast.kind) {
+    case "var": return ast.name;
+    case "not": return `¬(${astToExpression(ast.child)})`;
+    case "and": return `(${astToExpression(ast.left)} · ${astToExpression(ast.right)})`;
+    case "or": return `(${astToExpression(ast.left)} + ${astToExpression(ast.right)})`;
+  }
+}
+
+function baseToDecimal(value: string, base: number): number {
+  const clean = value.trim();
+  if (!clean) throw new Error("Enter a value.");
+  const result = parseInt(clean, base);
+  if (!Number.isFinite(result) || result < 0 || result.toString(base).toUpperCase() !== clean.replace(/^0+/, "").toLowerCase() && clean !== "0") {
+    throw new Error("Invalid number for the selected base.");
+  }
+  return result;
+}
+
+function decimalToBase(value: number, base: number): string {
+  return Math.trunc(value).toString(base).toUpperCase();
+}
+
+function binaryToGray(binary: string): string {
+  const bits = binary.replace(/\s/g, "");
+  if (!/^[01]+$/.test(bits)) throw new Error("Binary value must contain only 0 and 1.");
+  let out = bits[0];
+  for (let i = 1; i < bits.length; i++) out += String(Number(bits[i - 1]) ^ Number(bits[i]));
+  return out;
+}
+
+function grayToBinary(gray: string): string {
+  const bits = gray.replace(/\s/g, "");
+  if (!/^[01]+$/.test(bits)) throw new Error("Gray code must contain only 0 and 1.");
+  let out = bits[0];
+  for (let i = 1; i < bits.length; i++) out += String(Number(out[i - 1]) ^ Number(bits[i]));
+  return out;
+}
+
 /* =========================================================
    MAIN COMPONENT
    ========================================================= */
@@ -1671,6 +1986,14 @@ function CircuitDesignerContent() {
     kmapExpression,
     setKmapExpression,
   ] = useState("");
+
+  const [expressionInput, setExpressionInput] = useState("");
+  const [expressionVariables, setExpressionVariables] = useState<string[]>([]);
+  const [converterFrom, setConverterFrom] = useState("binary");
+  const [converterTo, setConverterTo] = useState("decimal");
+  const [converterValue, setConverterValue] = useState("");
+  const [converterResult, setConverterResult] = useState("");
+  const [converterError, setConverterError] = useState("");
 
   const [history, setHistory] =
     useState<HistoryState[]>([]);
@@ -2794,6 +3117,167 @@ function CircuitDesignerContent() {
       kmapMinterms,
       kmapVariables,
     ]);
+
+
+  /* =======================================================
+     EXPRESSION / K-MAP CIRCUIT GENERATION
+     ======================================================= */
+
+  const buildCircuitFromAst = useCallback((ast: BoolAst, variables: string[]) => {
+    const newNodes: GateNodeType[] = [];
+    const newEdges: Edge[] = [];
+    const variableNodes = new Map<string, GateNodeType>();
+    let nodeCounter = 0;
+
+    variables.forEach((name, i) => {
+      const node: GateNodeType = {
+        id: `expr-input-${name}-${Date.now()}-${i}`,
+        type: "gate",
+        position: { x: 60, y: 80 + i * 100 },
+        data: { label: name, gateType: "INPUT", value: false },
+      };
+      variableNodes.set(name, node);
+      newNodes.push(node);
+    });
+
+    const build = (nodeAst: BoolAst, x: number, y: number): GateNodeType => {
+      if (nodeAst.kind === "var") {
+        if (nodeAst.name === "0" || nodeAst.name === "1") {
+          const node: GateNodeType = { id: `const-${nodeCounter++}-${Date.now()}`, type: "gate", position: { x, y }, data: { label: nodeAst.name, gateType: "INPUT", value: nodeAst.name === "1" } };
+          newNodes.push(node);
+          return node;
+        }
+        return variableNodes.get(nodeAst.name)!;
+      }
+
+      const gateType: GateType = nodeAst.kind === "not" ? "NOT" : nodeAst.kind === "and" ? "AND" : "OR";
+      const node: GateNodeType = {
+        id: `expr-${gateType.toLowerCase()}-${nodeCounter++}-${Date.now()}`,
+        type: "gate",
+        position: { x, y },
+        data: { label: gateNames[gateType], gateType, value: false },
+      };
+      newNodes.push(node);
+
+      if (nodeAst.kind === "not") {
+        const source = build(nodeAst.child, x - 180, y);
+        newEdges.push({ id: `edge-${nodeCounter}-${Date.now()}`, source: source.id, target: node.id, targetHandle: "input-1", animated: true });
+      } else {
+        const left = build(nodeAst.left, x - 180, y - 35);
+        const right = build(nodeAst.right, x - 180, y + 35);
+        newEdges.push({ id: `edge-${nodeCounter++}-${Date.now()}`, source: left.id, target: node.id, targetHandle: "input-1", animated: true });
+        newEdges.push({ id: `edge-${nodeCounter++}-${Date.now()}`, source: right.id, target: node.id, targetHandle: "input-2", animated: true });
+      }
+      return node;
+    };
+
+    const root = build(ast, 520, 260);
+    const output: GateNodeType = { id: `expr-output-${Date.now()}`, type: "gate", position: { x: 760, y: 260 }, data: { label: "OUTPUT F", gateType: "OUTPUT", value: false } };
+    newNodes.push(output);
+    newEdges.push({ id: `edge-output-${Date.now()}`, source: root.id, target: output.id, animated: true });
+
+    remember();
+    setNodes(newNodes);
+    setEdges(newEdges);
+    setSelectedNode(null);
+    setTruthTable(null);
+    setBooleanExpression(`F = ${astToExpression(ast)}`);
+    setStatus("Circuit generated from Boolean expression.");
+  }, [remember, setNodes, setEdges]);
+
+  const generateCircuitFromExpression = useCallback(() => {
+    try {
+      const parsed = parseBooleanExpression(expressionInput);
+      if (parsed.variables.length > 8) throw new Error("Use at most 8 variables for a generated circuit.");
+      setExpressionVariables(parsed.variables);
+      buildCircuitFromAst(parsed.ast, parsed.variables);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Invalid Boolean expression.");
+    }
+  }, [expressionInput, buildCircuitFromAst]);
+
+  const generateAnalysisFromExpression = useCallback(() => {
+    try {
+      const parsed = parseBooleanExpression(expressionInput);
+      if (parsed.variables.length === 0 || parsed.variables.length > 4) throw new Error("Expression-to-K-map supports 1 to 4 variables.");
+      setExpressionVariables(parsed.variables);
+      const total = 2 ** parsed.variables.length;
+      const minterms: number[] = [];
+      for (let mask = 0; mask < total; mask++) {
+        const values: Record<string, boolean> = {};
+        parsed.variables.forEach((name, i) => values[name] = Boolean(mask & (1 << (parsed.variables.length - 1 - i))));
+        if (evaluateBooleanAst(parsed.ast, values)) minterms.push(mask);
+      }
+      setKmapVariables(parsed.variables.length);
+      setKmapMinterms(minterms.join(","));
+      setKmapResult(minterms);
+      const solution = solveKMap(minterms, parsed.variables.length);
+      const groups = solution.map((pattern, index) => ({ id: index + 1, pattern, minterms: getPatternMinterms(pattern).filter(m => minterms.includes(m)), term: patternToTerm(pattern) }));
+      setKmapGroups(groups);
+      setKmapExpression(groups.length ? groups.map(g => g.term).join(" + ") : "0");
+
+      const inputs = parsed.variables;
+      const rows: Record<string, number | boolean>[] = [];
+      for (let mask = 0; mask < total; mask++) {
+        const values: Record<string, boolean> = {};
+        inputs.forEach((name, i) => values[name] = Boolean(mask & (1 << (inputs.length - 1 - i))));
+        rows.push({ ...Object.fromEntries(inputs.map(name => [name, values[name]])), F: evaluateBooleanAst(parsed.ast, values) });
+      }
+      setTruthTable({ inputs, outputs: ["F"], rows });
+      setBooleanExpression(`F = ${astToExpression(parsed.ast)}`);
+      setStatus("Expression converted to K-map and truth table.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Invalid Boolean expression.");
+    }
+  }, [expressionInput]);
+
+  const generateCircuitFromKMap = useCallback(() => {
+    if (!kmapExpression) {
+      setStatus("Generate a K-map first.");
+      return;
+    }
+    setExpressionInput(kmapExpression);
+    try {
+      const parsed = parseBooleanExpression(kmapExpression);
+      buildCircuitFromAst(parsed.ast, parsed.variables);
+      setStatus("Circuit generated from K-map expression.");
+    } catch {
+      setStatus("Could not convert the K-map expression to a circuit.");
+    }
+  }, [kmapExpression, buildCircuitFromAst]);
+
+  /* =======================================================
+     NUMBER / CODE CONVERTERS
+     ======================================================= */
+
+  const runConverter = useCallback(() => {
+    try {
+      setConverterError("");
+      const from = converterFrom;
+      const to = converterTo;
+      const value = converterValue.trim();
+      if (!value) throw new Error("Enter a value.");
+
+      if (from === "gray" || to === "gray") {
+        if (from === "binary" && to === "gray") {
+          setConverterResult(binaryToGray(value));
+          return;
+        }
+        if (from === "gray" && to === "binary") {
+          setConverterResult(grayToBinary(value));
+          return;
+        }
+        throw new Error("Gray conversion is available only between Binary and Gray Code.");
+      }
+
+      const bases: Record<string, number> = { binary: 2, octal: 8, decimal: 10, hexadecimal: 16 };
+      const decimal = baseToDecimal(value, bases[from]);
+      setConverterResult(decimalToBase(decimal, bases[to]));
+    } catch (error) {
+      setConverterResult("");
+      setConverterError(error instanceof Error ? error.message : "Conversion failed.");
+    }
+  }, [converterFrom, converterTo, converterValue]);
 
   /* =======================================================
      SAVE
@@ -4312,6 +4796,42 @@ function CircuitDesignerContent() {
             >
               Generate
             </button>
+          </div>
+
+          {/* =================================================
+              BOOLEAN / K-MAP GENERATORS
+              ================================================= */}
+
+          <div className="analysis-panel feature-panel">
+            <div className="panel-heading"><h2>Design from Expression</h2></div>
+            <textarea className="logic-expression-input" value={expressionInput} onChange={(event) => setExpressionInput(event.target.value)} placeholder="Example: A'B + AC" rows={3} />
+            <div className="feature-button-grid">
+              <button className="full" onClick={generateCircuitFromExpression}>Expression → Circuit</button>
+              <button className="full" onClick={generateAnalysisFromExpression}>Expression → K-Map + Truth Table</button>
+            </div>
+            {expressionVariables.length > 0 && <div className="tool-note">Variables: {expressionVariables.join(", ")}</div>}
+          </div>
+
+          <div className="analysis-panel feature-panel">
+            <div className="panel-heading"><h2>K-Map → Circuit</h2></div>
+            <button className="full" onClick={generateCircuitFromKMap}>Generate Circuit from Current K-Map</button>
+          </div>
+
+          <div className="analysis-panel feature-panel">
+            <div className="panel-heading"><h2>Number & Code Converter</h2></div>
+            <div className="converter-grid">
+              <select value={converterFrom} onChange={(event) => setConverterFrom(event.target.value)}>
+                <option value="binary">Binary</option><option value="octal">Octal</option><option value="decimal">Decimal</option><option value="hexadecimal">Hexadecimal</option><option value="gray">Gray Code</option>
+              </select>
+              <select value={converterTo} onChange={(event) => setConverterTo(event.target.value)}>
+                <option value="binary">Binary</option><option value="octal">Octal</option><option value="decimal">Decimal</option><option value="hexadecimal">Hexadecimal</option><option value="gray">Gray Code</option>
+              </select>
+            </div>
+            <input value={converterValue} onChange={(event) => setConverterValue(event.target.value)} placeholder="Enter value" />
+            <button className="full" onClick={runConverter}>Convert</button>
+            {converterResult && <div className="conversion-result">Result: {converterResult}</div>}
+            {converterError && <div className="tool-error">{converterError}</div>}
+            <div className="tool-note">Supports Binary, Octal, Decimal, Hexadecimal and Binary ↔ Gray Code.</div>
           </div>
 
           {/* =================================================

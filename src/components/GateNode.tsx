@@ -26,6 +26,21 @@ export type GateType =
   | "T_FLIP_FLOP"
   | "REGISTER"
   | "COUNTER"
+  | "MUX_4_1"
+  | "MUX_8_1"
+  | "DEMUX_1_4"
+  | "DEMUX_1_8"
+  | "HALF_ADDER"
+  | "FULL_ADDER"
+  | "HALF_SUBTRACTOR"
+  | "FULL_SUBTRACTOR"
+  | "SERIAL_ADDER"
+  | "PARALLEL_ADDER"
+  | "BCD_ADDER"
+  | "SR_LATCH"
+  | "D_LATCH"
+  | "JK_LATCH"
+  | "T_LATCH"
   | "OUTPUT";
 
 export type GateNodeData = {
@@ -577,7 +592,14 @@ function GateSymbol({
       );
 
     default:
-      return null;
+      return (
+        <svg viewBox="0 0 120 80" className="gate-svg">
+          <rect x="15" y="10" width="90" height="60" rx="6" fill="none" stroke={stroke} strokeWidth="3" />
+          <text x="60" y="45" textAnchor="middle" fontSize="11">
+            {gateType.replaceAll("_", " ").slice(0, 12)}
+          </text>
+        </svg>
+      );
   }
 }
 
@@ -630,7 +652,37 @@ export default function GateNode({
     data.gateType ===
       "REGISTER" ||
     data.gateType ===
-      "COUNTER";
+      "COUNTER" ||
+    data.gateType ===
+      "MUX_4_1" ||
+    data.gateType ===
+      "MUX_8_1" ||
+    data.gateType ===
+      "DEMUX_1_4" ||
+    data.gateType ===
+      "DEMUX_1_8" ||
+    data.gateType ===
+      "HALF_ADDER" ||
+    data.gateType ===
+      "FULL_ADDER" ||
+    data.gateType ===
+      "HALF_SUBTRACTOR" ||
+    data.gateType ===
+      "FULL_SUBTRACTOR" ||
+    data.gateType ===
+      "SERIAL_ADDER" ||
+    data.gateType ===
+      "PARALLEL_ADDER" ||
+    data.gateType ===
+      "BCD_ADDER" ||
+    data.gateType ===
+      "SR_LATCH" ||
+    data.gateType ===
+      "D_LATCH" ||
+    data.gateType ===
+      "JK_LATCH" ||
+    data.gateType ===
+      "T_LATCH";
 
   if (isInput) {
     return (
@@ -1633,6 +1685,110 @@ export default function GateNode({
               </React.Fragment>
             )
           )}
+        </>
+      )}
+
+      {data.gateType === "MUX_4_1" && (
+        <>
+          {[0, 1, 2, 3].map((i) => (
+            <React.Fragment key={i}>
+              <Handle type="target" position={Position.Left} id={`input-${i}`} style={{ top: `${18 + i * 21}%` }} className="logic-handle" />
+              <Label style={{ top: `${18 + i * 21}%` }}>{`D${i}`}</Label>
+            </React.Fragment>
+          ))}
+          {[0, 1].map((i) => (
+            <Handle key={i} type="target" position={Position.Bottom} id={`select-${i}`} style={{ left: `${35 + i * 30}%` }} className="logic-handle" />
+          ))}
+          <Handle type="source" position={Position.Right} id="output" className="logic-handle" />
+          <Label style={{ left: "auto", right: "-35px", top: "50%" }}>Y</Label>
+        </>
+      )}
+
+      {data.gateType === "MUX_8_1" && (
+        <>
+          {Array.from({ length: 8 }, (_, i) => (
+            <React.Fragment key={i}>
+              <Handle type="target" position={Position.Left} id={`input-${i}`} style={{ top: `${10 + i * 11.5}%` }} className="logic-handle" />
+              <Label style={{ top: `${10 + i * 11.5}%` }}>{`D${i}`}</Label>
+            </React.Fragment>
+          ))}
+          {[0, 1, 2].map((i) => (
+            <Handle key={i} type="target" position={Position.Bottom} id={`select-${i}`} style={{ left: `${25 + i * 25}%` }} className="logic-handle" />
+          ))}
+          <Handle type="source" position={Position.Right} id="output" className="logic-handle" />
+          <Label style={{ left: "auto", right: "-35px", top: "50%" }}>Y</Label>
+        </>
+      )}
+
+      {(data.gateType === "DEMUX_1_4" || data.gateType === "DEMUX_1_8") && (
+        <>
+          <Handle type="target" position={Position.Left} id="input" className="logic-handle" />
+          <Label style={{ top: "50%" }}>D</Label>
+          {Array.from({ length: data.gateType === "DEMUX_1_4" ? 2 : 3 }, (_, i) => (
+            <Handle key={i} type="target" position={Position.Bottom} id={`select-${i}`} style={{ left: `${35 + i * 15}%` }} className="logic-handle" />
+          ))}
+          {Array.from({ length: data.gateType === "DEMUX_1_4" ? 4 : 8 }, (_, i) => (
+            <React.Fragment key={i}>
+              <Handle type="source" position={Position.Right} id={`output-${i}`} style={{ top: `${10 + i * (data.gateType === "DEMUX_1_4" ? 27 : 11.5)}%` }} className="logic-handle" />
+              <Label style={{ left: "auto", right: "-35px", top: `${10 + i * (data.gateType === "DEMUX_1_4" ? 27 : 11.5)}%` }}>{`Y${i}`}</Label>
+            </React.Fragment>
+          ))}
+        </>
+      )}
+
+      {(data.gateType === "HALF_ADDER" || data.gateType === "HALF_SUBTRACTOR") && (
+        <>
+          <Handle type="target" position={Position.Left} id="a" style={{ top: "35%" }} className="logic-handle" />
+          <Handle type="target" position={Position.Left} id="b" style={{ top: "65%" }} className="logic-handle" />
+          <Label style={{ top: "35%" }}>A</Label><Label style={{ top: "65%" }}>B</Label>
+          <Handle type="source" position={Position.Right} id="sum" style={{ top: "35%" }} className="logic-handle" />
+          <Handle type="source" position={Position.Right} id="carry" style={{ top: "65%" }} className="logic-handle" />
+          <Label style={{ left: "auto", right: "-45px", top: "35%" }}>{data.gateType === "HALF_ADDER" ? "SUM" : "DIFF"}</Label>
+          <Label style={{ left: "auto", right: "-55px", top: "65%" }}>{data.gateType === "HALF_ADDER" ? "CARRY" : "BORROW"}</Label>
+        </>
+      )}
+
+      {(data.gateType === "FULL_ADDER" || data.gateType === "FULL_SUBTRACTOR") && (
+        <>
+          <Handle type="target" position={Position.Left} id="a" style={{ top: "25%" }} className="logic-handle" />
+          <Handle type="target" position={Position.Left} id="b" style={{ top: "50%" }} className="logic-handle" />
+          <Handle type="target" position={Position.Left} id="carry-in" style={{ top: "75%" }} className="logic-handle" />
+          <Label style={{ top: "25%" }}>A</Label><Label style={{ top: "50%" }}>B</Label><Label style={{ top: "75%" }}>{data.gateType === "FULL_ADDER" ? "Cin" : "Bin"}</Label>
+          <Handle type="source" position={Position.Right} id="sum" style={{ top: "35%" }} className="logic-handle" />
+          <Handle type="source" position={Position.Right} id="carry" style={{ top: "65%" }} className="logic-handle" />
+          <Label style={{ left: "auto", right: "-48px", top: "35%" }}>{data.gateType === "FULL_ADDER" ? "SUM" : "DIFF"}</Label>
+          <Label style={{ left: "auto", right: "-55px", top: "65%" }}>{data.gateType === "FULL_ADDER" ? "Cout" : "Bout"}</Label>
+        </>
+      )}
+
+      {(data.gateType === "SERIAL_ADDER") && (
+        <>
+          <Handle type="target" position={Position.Left} id="a" style={{ top: "35%" }} className="logic-handle" />
+          <Handle type="target" position={Position.Left} id="b" style={{ top: "65%" }} className="logic-handle" />
+          <Label style={{ top: "35%" }}>A</Label><Label style={{ top: "65%" }}>B</Label>
+          <Handle type="target" position={Position.Bottom} id="clock" className="logic-handle" />
+          <Label style={{ bottom: "-22px", left: "50%", transform: "translateX(-50%)" }}>CLK</Label>
+          <Handle type="source" position={Position.Right} id="sum" style={{ top: "40%" }} className="logic-handle" />
+          <Handle type="source" position={Position.Right} id="carry" style={{ top: "60%" }} className="logic-handle" />
+          <Label style={{ left: "auto", right: "-45px", top: "40%" }}>SUM</Label><Label style={{ left: "auto", right: "-45px", top: "60%" }}>Cout</Label>
+        </>
+      )}
+
+      {(data.gateType === "PARALLEL_ADDER" || data.gateType === "BCD_ADDER") && (
+        <>
+          {Array.from({ length: 4 }, (_, i) => <React.Fragment key={`a${i}`}><Handle type="target" position={Position.Left} id={`a${i}`} style={{ top: `${15 + i * 14}%` }} className="logic-handle" /><Label style={{ top: `${15 + i * 14}%` }}>{`A${i}`}</Label></React.Fragment>)}
+          {Array.from({ length: 4 }, (_, i) => <React.Fragment key={`b${i}`}><Handle type="target" position={Position.Left} id={`b${i}`} style={{ top: `${22 + i * 14}%` }} className="logic-handle" /><Label style={{ top: `${22 + i * 14}%` }}>{`B${i}`}</Label></React.Fragment>)}
+          <Handle type="target" position={Position.Bottom} id="carry-in" className="logic-handle" />
+          <Label style={{ bottom: "-22px", left: "50%", transform: "translateX(-50%)" }}>Cin</Label>
+          {Array.from({ length: 4 }, (_, i) => <React.Fragment key={`s${i}`}><Handle type="source" position={Position.Right} id={`sum-${i}`} style={{ top: `${20 + i * 18}%` }} className="logic-handle" /><Label style={{ left: "auto", right: "-35px", top: `${20 + i * 18}%` }}>{`S${i}`}</Label></React.Fragment>)}
+          <Handle type="source" position={Position.Right} id="carry-out" style={{ top: "90%" }} className="logic-handle" /><Label style={{ left: "auto", right: "-45px", top: "90%" }}>Cout</Label>
+        </>
+      )}
+
+      {(data.gateType === "SR_LATCH" || data.gateType === "D_LATCH" || data.gateType === "JK_LATCH" || data.gateType === "T_LATCH") && (
+        <>
+          {(data.gateType === "SR_LATCH") ? <><Handle type="target" position={Position.Left} id="set" style={{ top: "35%" }} className="logic-handle" /><Handle type="target" position={Position.Left} id="reset" style={{ top: "65%" }} className="logic-handle" /><Label style={{ top: "35%" }}>S</Label><Label style={{ top: "65%" }}>R</Label></> : data.gateType === "D_LATCH" ? <><Handle type="target" position={Position.Left} id="d" style={{ top: "35%" }} className="logic-handle" /><Handle type="target" position={Position.Left} id="enable" style={{ top: "65%" }} className="logic-handle" /><Label style={{ top: "35%" }}>D</Label><Label style={{ top: "65%" }}>EN</Label></> : data.gateType === "JK_LATCH" ? <><Handle type="target" position={Position.Left} id="j" style={{ top: "30%" }} className="logic-handle" /><Handle type="target" position={Position.Left} id="k" style={{ top: "55%" }} className="logic-handle" /><Handle type="target" position={Position.Bottom} id="enable" className="logic-handle" /><Label style={{ top: "30%" }}>J</Label><Label style={{ top: "55%" }}>K</Label><Label style={{ bottom: "-22px", left: "50%", transform: "translateX(-50%)" }}>EN</Label></> : <><Handle type="target" position={Position.Left} id="t" style={{ top: "35%" }} className="logic-handle" /><Handle type="target" position={Position.Left} id="enable" style={{ top: "65%" }} className="logic-handle" /><Label style={{ top: "35%" }}>T</Label><Label style={{ top: "65%" }}>EN</Label></>}
+          <Handle type="source" position={Position.Right} id="q" style={{ top: "35%" }} className="logic-handle" /><Handle type="source" position={Position.Right} id="q-bar" style={{ top: "65%" }} className="logic-handle" /><Label style={{ left: "auto", right: "-28px", top: "35%" }}>Q</Label><Label style={{ left: "auto", right: "-28px", top: "65%" }}>Q̅</Label>
         </>
       )}
 
