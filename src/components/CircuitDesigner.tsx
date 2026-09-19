@@ -1983,7 +1983,6 @@ function CircuitDesignerContent() {
       `${gateNames[gate]} added.`
     );
   };
-
   /* =======================================================
      DELETE
      ======================================================= */
@@ -3214,6 +3213,42 @@ function CircuitDesignerContent() {
   const kmapCols =
     kmapLayout.colBits.length;
 
+  function onGateTap(gate: string): void {
+  if (!gateTypes.includes(gate as GateType)) {
+    return;
+  }
+
+  const gateType = gate as GateType;
+
+  const position = screenToFlowPosition({
+    x: window.innerWidth / 2,
+    y: window.innerHeight / 2,
+  });
+
+  const newNode: GateNodeType = {
+    id: `${gateType.toLowerCase()}-${Date.now()}`,
+    type: "gate",
+    position,
+    data: {
+      label: gateNames[gateType],
+      gateType,
+      value: false,
+    },
+  };
+
+  remember();
+
+  setNodes((current) => [
+    ...current,
+    newNode,
+  ]);
+
+  setSelectedNode(newNode);
+
+  setStatus(
+    `${gateNames[gateType]} added.`
+  );
+}
   /* =======================================================
      RENDER
      ======================================================= */
@@ -3417,6 +3452,7 @@ function CircuitDesignerContent() {
                       gate
                     )
                   }
+                  onClick={() => onGateTap(gate)}
                 >
                   <span className="component-symbol">
                     {gate ===
