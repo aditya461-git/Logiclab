@@ -2557,3 +2557,164 @@ body {
 .validation-errors { border: 1px solid rgba(255, 107, 107, 0.3); background: var(--red-soft); color: #ffb1b1; }
 .validation-errors > div { margin-top: 4px; }
 @media (max-width: 760px) { .kmap-multi-map-grid { grid-template-columns: 1fr; } }
+
+/* =========================================================
+   VERILOG GENERATOR
+========================================================= */
+.verilog-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(4, 8, 14, 0.78);
+  backdrop-filter: blur(5px);
+}
+
+.verilog-modal {
+  width: min(1000px, 96vw);
+  max-height: min(760px, 92vh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #3a4b63;
+  border-radius: 12px;
+  background: #111824;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+
+.verilog-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.verilog-modal-header strong {
+  display: block;
+  color: #edf3fc;
+  font-size: 14px;
+}
+
+.verilog-modal-header span {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.verilog-close {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #344257;
+  border-radius: 7px;
+  background: #182231;
+  color: #cbd6e5;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.verilog-close:hover {
+  background: #263247;
+  color: white;
+}
+
+.verilog-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: #0f1722;
+}
+
+.verilog-toolbar select {
+  min-height: 36px;
+  padding: 7px 9px;
+  border: 1px solid #344257;
+  border-radius: 7px;
+  background: #151e2b;
+  color: #dce5f2;
+}
+
+.verilog-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.verilog-actions button {
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid #344257;
+  border-radius: 7px;
+  background: #182231;
+  color: #cbd6e5;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.verilog-actions button:hover {
+  background: #253247;
+  color: white;
+}
+
+.verilog-actions .primary {
+  background: #367eea;
+  border-color: #367eea;
+  color: white;
+}
+
+.verilog-code {
+  flex: 1;
+  min-height: 360px;
+  width: 100%;
+  resize: none;
+  padding: 15px;
+  border: 0;
+  outline: none;
+  background: #0a111a;
+  color: #d6e2f3;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  tab-size: 2;
+}
+
+.verilog-footer {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  background: #111824;
+  color: #77849a;
+  font-size: 9px;
+}
+
+@media (max-width: 768px) {
+  .verilog-modal-backdrop {
+    padding: 8px;
+  }
+
+  .verilog-modal {
+    width: 100%;
+    max-height: 96vh;
+  }
+
+  .verilog-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .verilog-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .verilog-code {
+    min-height: 320px;
+    font-size: 10px;
+  }
+}

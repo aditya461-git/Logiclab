@@ -30,6 +30,7 @@ import GateNode, {
 } from "./GateNode";
 
 import "./circuit.css";
+import { generateVerilog, type VerilogStyle } from "./verilogGenerator";
 
 type HistoryState = {
   nodes: GateNodeType[];
@@ -134,6 +135,14 @@ const gateTypes: GateType[] = [
   "XNOR",
   "MUX",
   "DEMUX",
+  "DECODER",
+  "ENCODER",
+  "SR_FLIP_FLOP",
+  "JK_FLIP_FLOP",
+  "D_FLIP_FLOP",
+  "T_FLIP_FLOP",
+  "REGISTER",
+  "COUNTER",
   "MUX_4_1",
   "MUX_8_1",
   "DEMUX_1_4",
@@ -149,14 +158,6 @@ const gateTypes: GateType[] = [
   "D_LATCH",
   "JK_LATCH",
   "T_LATCH",
-  "DECODER",
-  "ENCODER",
-  "SR_FLIP_FLOP",
-  "JK_FLIP_FLOP",
-  "D_FLIP_FLOP",
-  "T_FLIP_FLOP",
-  "REGISTER",
-  "COUNTER",
   "OUTPUT",
 ];
 
@@ -171,21 +172,6 @@ const gateNames: Record<GateType, string> = {
   XNOR: "XNOR",
   MUX: "MUX 2:1",
   DEMUX: "DEMUX 1:2",
-  MUX_4_1: "MUX 4:1",
-  MUX_8_1: "MUX 8:1",
-  DEMUX_1_4: "DEMUX 1:4",
-  DEMUX_1_8: "DEMUX 1:8",
-  HALF_ADDER: "Half Adder",
-  FULL_ADDER: "Full Adder",
-  HALF_SUBTRACTOR: "Half Subtractor",
-  FULL_SUBTRACTOR: "Full Subtractor",
-  SERIAL_ADDER: "Serial Adder",
-  PARALLEL_ADDER: "4-bit Parallel Adder",
-  BCD_ADDER: "BCD Adder",
-  SR_LATCH: "SR Latch",
-  D_LATCH: "D Latch",
-  JK_LATCH: "JK Latch",
-  T_LATCH: "T Latch",
   DECODER: "Decoder 2:4",
   ENCODER: "Encoder 4:2",
   SR_FLIP_FLOP: "SR Flip-Flop",
@@ -194,6 +180,21 @@ const gateNames: Record<GateType, string> = {
   T_FLIP_FLOP: "T Flip-Flop",
   REGISTER: "4-bit Register",
   COUNTER: "4-bit Counter",
+  MUX_4_1: "4:1 MUX",
+  MUX_8_1: "8:1 MUX",
+  DEMUX_1_4: "1:4 DEMUX",
+  DEMUX_1_8: "1:8 DEMUX",
+  HALF_ADDER: "Half Adder",
+  FULL_ADDER: "Full Adder",
+  HALF_SUBTRACTOR: "Half Subtractor",
+  FULL_SUBTRACTOR: "Full Subtractor",
+  SERIAL_ADDER: "Serial Adder",
+  PARALLEL_ADDER: "Parallel Adder",
+  BCD_ADDER: "BCD Adder",
+  SR_LATCH: "SR Latch",
+  D_LATCH: "D Latch",
+  JK_LATCH: "JK Latch",
+  T_LATCH: "T Latch",
   OUTPUT: "Output",
 };
 
@@ -306,45 +307,6 @@ function getInputHandleIds(
     case "DEMUX":
       return ["input", "select"];
 
-    case "MUX_4_1":
-      return ["input-0", "input-1", "input-2", "input-3", "select-0", "select-1"];
-
-    case "MUX_8_1":
-      return ["input-0", "input-1", "input-2", "input-3", "input-4", "input-5", "input-6", "input-7", "select-0", "select-1", "select-2"];
-
-    case "DEMUX_1_4":
-      return ["input", "select-0", "select-1"];
-
-    case "DEMUX_1_8":
-      return ["input", "select-0", "select-1", "select-2"];
-
-    case "HALF_ADDER":
-    case "HALF_SUBTRACTOR":
-      return ["a", "b"];
-
-    case "FULL_ADDER":
-    case "FULL_SUBTRACTOR":
-      return ["a", "b", "carry-in"];
-
-    case "SERIAL_ADDER":
-      return ["a", "b", "clock"];
-
-    case "PARALLEL_ADDER":
-    case "BCD_ADDER":
-      return ["a0", "a1", "a2", "a3", "b0", "b1", "b2", "b3", "carry-in"];
-
-    case "SR_LATCH":
-      return ["set", "reset"];
-
-    case "D_LATCH":
-      return ["d", "enable"];
-
-    case "JK_LATCH":
-      return ["j", "k", "enable"];
-
-    case "T_LATCH":
-      return ["t", "enable"];
-
     case "DECODER":
       return [
         "input-a",
@@ -382,6 +344,40 @@ function getInputHandleIds(
 
     case "COUNTER":
       return ["clock"];
+
+    case "MUX_4_1":
+      return ["input-0", "input-1", "input-2", "input-3", "select-0", "select-1"];
+
+    case "MUX_8_1":
+      return [
+        ...Array.from({ length: 8 }, (_, i) => `input-${i}`),
+        ...Array.from({ length: 3 }, (_, i) => `select-${i}`),
+      ];
+
+    case "DEMUX_1_4":
+      return ["input", "select-0", "select-1"];
+
+    case "DEMUX_1_8":
+      return ["input", "select-0", "select-1", "select-2"];
+
+    case "HALF_ADDER":
+    case "HALF_SUBTRACTOR":
+      return ["a", "b"];
+
+    case "FULL_ADDER":
+    case "FULL_SUBTRACTOR":
+      return ["a", "b", "carry-in"];
+
+    case "SERIAL_ADDER":
+      return ["a", "b", "clock"];
+
+    case "PARALLEL_ADDER":
+    case "BCD_ADDER":
+      return [
+        ...Array.from({ length: 4 }, (_, i) => `a${i}`),
+        ...Array.from({ length: 4 }, (_, i) => `b${i}`),
+        "carry-in",
+      ];
 
     case "NOT":
       return ["input-1"];
@@ -806,120 +802,6 @@ function calculateNextState(
           break;
         }
 
-        case "MUX_4_1": {
-          const index = (getHandleValue("select-1") ? 2 : 0) + (getHandleValue("select-0") ? 1 : 0);
-          node.data.value = getHandleValue(`input-${index}`);
-          break;
-        }
-
-        case "MUX_8_1": {
-          const index = (getHandleValue("select-2") ? 4 : 0) + (getHandleValue("select-1") ? 2 : 0) + (getHandleValue("select-0") ? 1 : 0);
-          node.data.value = getHandleValue(`input-${index}`);
-          break;
-        }
-
-        case "DEMUX_1_4": {
-          const data = getHandleValue("input");
-          const index = (getHandleValue("select-1") ? 2 : 0) + (getHandleValue("select-0") ? 1 : 0);
-          node.data.value = data;
-          node.data.outputValues = Object.fromEntries(Array.from({ length: 4 }, (_, i) => [`output-${i}`, data && i === index]));
-          break;
-        }
-
-        case "DEMUX_1_8": {
-          const data = getHandleValue("input");
-          const index = (getHandleValue("select-2") ? 4 : 0) + (getHandleValue("select-1") ? 2 : 0) + (getHandleValue("select-0") ? 1 : 0);
-          node.data.value = data;
-          node.data.outputValues = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`output-${i}`, data && i === index]));
-          break;
-        }
-
-        case "HALF_ADDER": {
-          const a = getHandleValue("a"), b = getHandleValue("b");
-          node.data.value = a !== b;
-          node.data.outputValues = { sum: a !== b, carry: a && b };
-          break;
-        }
-
-        case "FULL_ADDER": {
-          const a = getHandleValue("a"), b = getHandleValue("b"), cin = getHandleValue("carry-in");
-          const sum = Boolean(a !== b) !== cin;
-          node.data.value = sum;
-          node.data.outputValues = { sum, carry: (a && b) || (a && cin) || (b && cin) };
-          break;
-        }
-
-        case "HALF_SUBTRACTOR": {
-          const a = getHandleValue("a"), b = getHandleValue("b");
-          node.data.value = a !== b;
-          node.data.outputValues = { sum: a !== b, carry: !a && b };
-          break;
-        }
-
-        case "FULL_SUBTRACTOR": {
-          const a = getHandleValue("a"), b = getHandleValue("b"), bin = getHandleValue("carry-in");
-          const diff = Boolean(a !== b) !== bin;
-          const borrow = (!a && b) || (!a && bin) || (b && bin);
-          node.data.value = diff;
-          node.data.outputValues = { sum: diff, carry: borrow };
-          break;
-        }
-
-        case "SERIAL_ADDER": {
-          const a = getHandleValue("a"), b = getHandleValue("b");
-          const carryIn = node.data.state ?? false;
-          const sum = Boolean(a !== b) !== carryIn;
-          const carry = (a && b) || (a && carryIn) || (b && carryIn);
-          node.data.state = carry;
-          node.data.value = sum;
-          node.data.outputValues = { sum, carry };
-          break;
-        }
-
-        case "PARALLEL_ADDER":
-        case "BCD_ADDER": {
-          let carry = getHandleValue("carry-in");
-          const outputs: Record<string, boolean> = {};
-          let aValue = 0, bValue = 0;
-          for (let i = 0; i < 4; i++) {
-            if (getHandleValue(`a${i}`)) aValue |= 1 << i;
-            if (getHandleValue(`b${i}`)) bValue |= 1 << i;
-          }
-          let total = aValue + bValue + (carry ? 1 : 0);
-          if (node.data.gateType === "BCD_ADDER" && total > 9) total += 6;
-          for (let i = 0; i < 4; i++) outputs[`sum-${i}`] = Boolean(total & (1 << i));
-          outputs["carry-out"] = total > 15 || (node.data.gateType === "BCD_ADDER" && aValue + bValue + (carry ? 1 : 0) > 9);
-          node.data.value = total !== 0;
-          node.data.outputValues = outputs;
-          break;
-        }
-
-        case "SR_LATCH": {
-          const set = getHandleValue("set"), reset = getHandleValue("reset");
-          let q = node.data.state ?? false;
-          if (set && !reset) q = true; else if (reset && !set) q = false;
-          node.data.state = q; node.data.value = q; node.data.outputValues = { q, "q-bar": !q }; break;
-        }
-
-        case "D_LATCH": {
-          const d = getHandleValue("d"), en = getHandleValue("enable");
-          let q = node.data.state ?? false; if (en) q = d;
-          node.data.state = q; node.data.value = q; node.data.outputValues = { q, "q-bar": !q }; break;
-        }
-
-        case "JK_LATCH": {
-          const j = getHandleValue("j"), k = getHandleValue("k"), en = getHandleValue("enable");
-          let q = node.data.state ?? false;
-          if (en) { if (j && k) q = !q; else if (j) q = true; else if (k) q = false; }
-          node.data.state = q; node.data.value = q; node.data.outputValues = { q, "q-bar": !q }; break;
-        }
-
-        case "T_LATCH": {
-          const t = getHandleValue("t"), en = getHandleValue("enable");
-          let q = node.data.state ?? false; if (en && t) q = !q;
-          node.data.state = q; node.data.value = q; node.data.outputValues = { q, "q-bar": !q }; break;
-        }
-
         case "OUTPUT": {
           const input =
             incoming.length > 0
@@ -934,6 +816,86 @@ function calculateNextState(
           node.data.value =
             input;
 
+          break;
+        }
+
+        case "MUX_4_1":
+        case "MUX_8_1": {
+          const count = node.data.gateType === "MUX_4_1" ? 4 : 8;
+          const selectCount = Math.log2(count);
+          let index = 0;
+          for (let i = 0; i < selectCount; i++) {
+            if (getHandleValue(`select-${i}`)) index |= 1 << i;
+          }
+          node.data.value = getHandleValue(`input-${Math.min(index, count - 1)}`);
+          break;
+        }
+
+        case "DEMUX_1_4":
+        case "DEMUX_1_8": {
+          const count = node.data.gateType === "DEMUX_1_4" ? 4 : 8;
+          let index = 0;
+          for (let i = 0; i < Math.log2(count); i++) {
+            if (getHandleValue(`select-${i}`)) index |= 1 << i;
+          }
+          const input = getHandleValue("input");
+          node.data.value = input;
+          node.data.outputValues = Object.fromEntries(
+            Array.from({ length: count }, (_, i) => [`output-${i}`, input && i === index])
+          );
+          break;
+        }
+
+        case "HALF_ADDER": {
+          const a = getHandleValue("a");
+          const b = getHandleValue("b");
+          node.data.value = a !== b;
+          node.data.outputValues = { sum: a !== b, carry: a && b };
+          break;
+        }
+
+        case "FULL_ADDER": {
+          const a = getHandleValue("a");
+          const b = getHandleValue("b");
+          const cin = getHandleValue("carry-in");
+          const ones = Number(a) + Number(b) + Number(cin);
+          node.data.value = ones % 2 === 1;
+          node.data.outputValues = { sum: ones % 2 === 1, carry: ones >= 2 };
+          break;
+        }
+
+        case "HALF_SUBTRACTOR": {
+          const a = getHandleValue("a");
+          const b = getHandleValue("b");
+          node.data.value = a !== b;
+          node.data.outputValues = { sum: a !== b, carry: !a && b };
+          break;
+        }
+
+        case "FULL_SUBTRACTOR": {
+          const a = getHandleValue("a");
+          const b = getHandleValue("b");
+          const bin = getHandleValue("carry-in");
+          const diff = Number(a) - Number(b) - Number(bin);
+          node.data.value = (diff & 1) === 1;
+          node.data.outputValues = { sum: (diff & 1) === 1, carry: diff < 0 };
+          break;
+        }
+
+        case "PARALLEL_ADDER":
+        case "BCD_ADDER": {
+          let a = 0;
+          let b = 0;
+          for (let i = 0; i < 4; i++) {
+            if (getHandleValue(`a${i}`)) a |= 1 << i;
+            if (getHandleValue(`b${i}`)) b |= 1 << i;
+          }
+          const total = a + b + Number(getHandleValue("carry-in"));
+          node.data.value = total !== 0;
+          node.data.outputValues = {
+            ...Object.fromEntries(Array.from({ length: 4 }, (_, i) => [`sum-${i}`, Boolean(total & (1 << i))])),
+            "carry-out": total > 15,
+          };
           break;
         }
 
@@ -1114,8 +1076,6 @@ const KMAP_VARIABLE_NAMES = [
   "B",
   "C",
   "D",
-  "E",
-  "F",
 ];
 
 const KMAP_GRAY_CODES: Record<
@@ -1735,201 +1695,46 @@ function solveKMap(
 function getKMapLayout(
   variableCount: number
 ) {
-  if (variableCount === 2) {
+  if (
+    variableCount ===
+    2
+  ) {
     return {
       rowBits: KMAP_GRAY_CODES[1],
       colBits: KMAP_GRAY_CODES[1],
       rowVariables: ["A"],
       colVariables: ["B"],
-      mapVariables: [] as string[],
-      mapBits: [""] as string[],
     };
   }
 
-  if (variableCount === 3) {
+  if (
+    variableCount ===
+    3
+  ) {
     return {
       rowBits: KMAP_GRAY_CODES[1],
       colBits: KMAP_GRAY_CODES[2],
       rowVariables: ["A"],
       colVariables: ["B", "C"],
-      mapVariables: [] as string[],
-      mapBits: [""] as string[],
-    };
-  }
-
-  if (variableCount === 4) {
-    return {
-      rowBits: KMAP_GRAY_CODES[2],
-      colBits: KMAP_GRAY_CODES[2],
-      rowVariables: ["A", "B"],
-      colVariables: ["C", "D"],
-      mapVariables: [] as string[],
-      mapBits: [""] as string[],
-    };
-  }
-
-  if (variableCount === 5) {
-    return {
-      rowBits: KMAP_GRAY_CODES[2],
-      colBits: KMAP_GRAY_CODES[2],
-      rowVariables: ["B", "C"],
-      colVariables: ["D", "E"],
-      mapVariables: ["A"],
-      mapBits: ["0", "1"],
     };
   }
 
   return {
     rowBits: KMAP_GRAY_CODES[2],
     colBits: KMAP_GRAY_CODES[2],
-    rowVariables: ["C", "D"],
-    colVariables: ["E", "F"],
-    mapVariables: ["A", "B"],
-    mapBits: KMAP_GRAY_CODES[2],
+    rowVariables: ["A", "B"],
+    colVariables: ["C", "D"],
   };
 }
 
 function getMintermFromCell(
   rowBits: string,
-  colBits: string,
-  mapBits = ""
+  colBits: string
 ): number {
   return parseInt(
-    mapBits + rowBits + colBits,
+    rowBits + colBits,
     2
   );
-}
-
-
-/* =========================================================
-   BOOLEAN EXPRESSION ENGINE
-   ========================================================= */
-
-type BoolAst =
-  | { kind: "var"; name: string }
-  | { kind: "not"; child: BoolAst }
-  | { kind: "and"; left: BoolAst; right: BoolAst }
-  | { kind: "or"; left: BoolAst; right: BoolAst };
-
-function tokenizeBooleanExpression(expression: string): string[] {
-  const normalized = expression
-    .replace(/[¬!~]/g, "!")
-    .replace(/[·*]/g, "*")
-    .replace(/[+∨]/g, "+")
-    .replace(/\s+/g, "");
-  const tokens = normalized.match(/[A-Za-z][A-Za-z0-9_]*|[01]|[+*.!()']/g) ?? [];
-  return tokens;
-}
-
-function parseBooleanExpression(expression: string): { ast: BoolAst; variables: string[] } {
-  const tokens = tokenizeBooleanExpression(expression);
-  let index = 0;
-  const variables = new Set<string>();
-
-  const peek = () => tokens[index];
-  const take = () => tokens[index++];
-  const startsAtom = (token: string | undefined) => !!token && (/^[A-Za-z0-9]/.test(token) || token === "(" || token === "!");
-
-  const parseOr = (): BoolAst => {
-    let node = parseAnd();
-    while (peek() === "+") {
-      take();
-      node = { kind: "or", left: node, right: parseAnd() };
-    }
-    return node;
-  };
-
-  const parseAnd = (): BoolAst => {
-    let node = parseUnary();
-    while (peek() === "*" || peek() === "." || startsAtom(peek())) {
-      if (peek() === "*" || peek() === ".") take();
-      node = { kind: "and", left: node, right: parseUnary() };
-    }
-    return node;
-  };
-
-  const parseUnary = (): BoolAst => {
-    if (peek() === "!") {
-      take();
-      return { kind: "not", child: parseUnary() };
-    }
-    let node = parsePrimary();
-    while (peek() === "'") {
-      take();
-      node = { kind: "not", child: node };
-    }
-    return node;
-  };
-
-  const parsePrimary = (): BoolAst => {
-    const token = take();
-    if (!token) throw new Error("Unexpected end of expression.");
-    if (token === "(") {
-      const node = parseOr();
-      if (take() !== ")") throw new Error("Missing closing parenthesis.");
-      return node;
-    }
-    if (token === "0" || token === "1") {
-      return { kind: "var", name: token };
-    }
-    if (/^[A-Za-z]/.test(token)) {
-      variables.add(token);
-      return { kind: "var", name: token };
-    }
-    throw new Error(`Unexpected token: ${token}`);
-  };
-
-  const ast = parseOr();
-  if (index < tokens.length) throw new Error(`Unexpected token: ${tokens[index]}`);
-  return { ast, variables: [...variables].sort() };
-}
-
-function evaluateBooleanAst(ast: BoolAst, values: Record<string, boolean>): boolean {
-  switch (ast.kind) {
-    case "var": return ast.name === "1" ? true : ast.name === "0" ? false : !!values[ast.name];
-    case "not": return !evaluateBooleanAst(ast.child, values);
-    case "and": return evaluateBooleanAst(ast.left, values) && evaluateBooleanAst(ast.right, values);
-    case "or": return evaluateBooleanAst(ast.left, values) || evaluateBooleanAst(ast.right, values);
-  }
-}
-
-function astToExpression(ast: BoolAst): string {
-  switch (ast.kind) {
-    case "var": return ast.name;
-    case "not": return `¬(${astToExpression(ast.child)})`;
-    case "and": return `(${astToExpression(ast.left)} · ${astToExpression(ast.right)})`;
-    case "or": return `(${astToExpression(ast.left)} + ${astToExpression(ast.right)})`;
-  }
-}
-
-function baseToDecimal(value: string, base: number): number {
-  const clean = value.trim();
-  if (!clean) throw new Error("Enter a value.");
-  const result = parseInt(clean, base);
-  if (!Number.isFinite(result) || result < 0 || result.toString(base).toUpperCase() !== clean.replace(/^0+/, "").toLowerCase() && clean !== "0") {
-    throw new Error("Invalid number for the selected base.");
-  }
-  return result;
-}
-
-function decimalToBase(value: number, base: number): string {
-  return Math.trunc(value).toString(base).toUpperCase();
-}
-
-function binaryToGray(binary: string): string {
-  const bits = binary.replace(/\s/g, "");
-  if (!/^[01]+$/.test(bits)) throw new Error("Binary value must contain only 0 and 1.");
-  let out = bits[0];
-  for (let i = 1; i < bits.length; i++) out += String(Number(bits[i - 1]) ^ Number(bits[i]));
-  return out;
-}
-
-function grayToBinary(gray: string): string {
-  const bits = gray.replace(/\s/g, "");
-  if (!/^[01]+$/.test(bits)) throw new Error("Gray code must contain only 0 and 1.");
-  let out = bits[0];
-  for (let i = 1; i < bits.length; i++) out += String(Number(out[i - 1]) ^ Number(bits[i]));
-  return out;
 }
 
 /* =========================================================
@@ -1987,6 +1792,15 @@ function CircuitDesignerContent() {
     setBooleanExpression,
   ] = useState("");
 
+  const [verilogStyle, setVerilogStyle] =
+    useState<VerilogStyle>("behavioral");
+
+  const [verilogCode, setVerilogCode] =
+    useState("");
+
+  const [showVerilog, setShowVerilog] =
+    useState(false);
+
   const [
     kmapVariables,
     setKmapVariables,
@@ -2011,20 +1825,6 @@ function CircuitDesignerContent() {
     kmapExpression,
     setKmapExpression,
   ] = useState("");
-
-  const [expressionInput, setExpressionInput] = useState("");
-  const [expressionVariables, setExpressionVariables] = useState<string[]>([]);
-  const [converterFrom, setConverterFrom] = useState("binary");
-  const [converterTo, setConverterTo] = useState("decimal");
-  const [converterValue, setConverterValue] = useState("");
-  const [converterResult, setConverterResult] = useState("");
-  const [converterError, setConverterError] = useState("");
-
-  const [universalTarget, setUniversalTarget] = useState("OR");
-  const [universalBasis, setUniversalBasis] = useState<"NAND" | "NOR">("NAND");
-  const [universalExpression, setUniversalExpression] = useState("");
-  const [validationProblems, setValidationProblems] = useState<string[]>([]);
-  const [flowRenderKey, setFlowRenderKey] = useState(0);
 
   const [history, setHistory] =
     useState<HistoryState[]>([]);
@@ -2116,58 +1916,105 @@ function CircuitDesignerContent() {
   const onConnect =
     useCallback(
       (connection: Connection) => {
-        if (!connection.source || !connection.target) return;
-
-        const sourceNode = nodes.find((node) => node.id === connection.source);
-        const targetNode = nodes.find((node) => node.id === connection.target);
-        if (!sourceNode || !targetNode) return;
-
-        const fail = (message: string) => {
-          setValidationProblems([message]);
-          setStatus(`❌ ${message}`);
-        };
-
-        if (sourceNode.data.gateType === "OUTPUT") {
-          fail("An OUTPUT cannot be used as a source.");
-          return;
-        }
-        if (targetNode.data.gateType === "INPUT") {
-          fail("An INPUT cannot be used as a target.");
-          return;
-        }
-        if (connection.source === connection.target) {
-          fail("A component cannot connect to itself.");
+        if (
+          !connection.source ||
+          !connection.target
+        ) {
           return;
         }
 
-        const duplicate = edges.some((edge) =>
-          edge.source === connection.source &&
-          edge.target === connection.target &&
-          edge.sourceHandle === connection.sourceHandle &&
-          edge.targetHandle === connection.targetHandle
-        );
+        const sourceNode =
+          nodes.find(
+            (node) =>
+              node.id ===
+              connection.source
+          );
+
+        const targetNode =
+          nodes.find(
+            (node) =>
+              node.id ===
+              connection.target
+          );
+
+        if (
+          !sourceNode ||
+          !targetNode
+        ) {
+          return;
+        }
+
+        if (
+          sourceNode.data
+            .gateType ===
+          "OUTPUT"
+        ) {
+          setStatus(
+            "OUTPUT nodes cannot be sources."
+          );
+          return;
+        }
+
+        if (
+          targetNode.data
+            .gateType ===
+          "INPUT"
+        ) {
+          setStatus(
+            "INPUT nodes cannot be targets."
+          );
+          return;
+        }
+
+        if (
+          connection.source ===
+          connection.target
+        ) {
+          setStatus(
+            "A component cannot connect to itself."
+          );
+          return;
+        }
+
+        const duplicate =
+          edges.some(
+            (edge) =>
+              edge.source ===
+                connection.source &&
+              edge.target ===
+                connection.target &&
+              edge.sourceHandle ===
+                connection.sourceHandle &&
+              edge.targetHandle ===
+                connection.targetHandle
+          );
+
         if (duplicate) {
-          fail("This exact connection already exists.");
           return;
         }
 
-        const targetAlreadyDriven = edges.some((edge) =>
-          edge.target === connection.target &&
-          edge.targetHandle === connection.targetHandle
-        );
-        if (targetAlreadyDriven) {
-          fail(`${targetNode.data.label}: this input is already connected. Disconnect it before adding another source.`);
-          return;
-        }
-
-        setValidationProblems([]);
         remember();
+
         setEdges((current) =>
-          addEdge({ ...connection, animated: true }, current)
+          addEdge(
+            {
+              ...connection,
+              animated: true,
+            },
+            current
+          )
         );
-        setStatus("Connection created.");
+
+        setStatus(
+          "Connection created."
+        );
       },
-      [nodes, edges, remember, setEdges]
+      [
+        nodes,
+        edges,
+        remember,
+        setEdges,
+      ]
     );
 
   /* =======================================================
@@ -2692,8 +2539,6 @@ function CircuitDesignerContent() {
       setTruthTable(null);
       setBooleanExpression("");
       setSelectedNode(null);
-      setValidationProblems([]);
-      setFlowRenderKey((current) => current + 1);
 
       setKmapResult([]);
       setKmapGroups([]);
@@ -2728,8 +2573,6 @@ function CircuitDesignerContent() {
       setTruthTable(null);
       setBooleanExpression("");
       setSelectedNode(null);
-      setValidationProblems([]);
-      setFlowRenderKey((current) => current + 1);
 
       setKmapResult([]);
       setKmapGroups([]);
@@ -3106,285 +2949,6 @@ function CircuitDesignerContent() {
       kmapVariables,
     ]);
 
-
-  /* =======================================================
-     EXPRESSION / K-MAP CIRCUIT GENERATION
-     ======================================================= */
-
-  const buildCircuitFromAst = useCallback((ast: BoolAst, variables: string[]) => {
-    const newNodes: GateNodeType[] = [];
-    const newEdges: Edge[] = [];
-    const variableNodes = new Map<string, GateNodeType>();
-    let nodeCounter = 0;
-    let edgeCounter = 0;
-    const stamp = Date.now();
-
-    const nodeId = (prefix: string) => `${prefix}-${stamp}-${nodeCounter++}`;
-    const edgeId = () => `expr-edge-${stamp}-${edgeCounter++}`;
-
-    const addWire = (source: GateNodeType, target: GateNodeType, targetHandle?: string) => {
-      newEdges.push({
-        id: edgeId(),
-        source: source.id,
-        target: target.id,
-        ...(targetHandle ? { targetHandle } : {}),
-        animated: true,
-      });
-    };
-
-    variables.forEach((name, index) => {
-      const node: GateNodeType = {
-        id: nodeId(`expr-input-${name}`),
-        type: "gate",
-        position: { x: 60, y: 70 + index * 90 },
-        data: { label: name, gateType: "INPUT", value: false },
-      };
-      variableNodes.set(name, node);
-      newNodes.push(node);
-    });
-
-    const build = (nodeAst: BoolAst, x: number, y: number): GateNodeType => {
-      if (nodeAst.kind === "var") {
-        if (nodeAst.name === "0" || nodeAst.name === "1") {
-          const node: GateNodeType = {
-            id: nodeId("expr-const"),
-            type: "gate",
-            position: { x, y },
-            data: { label: nodeAst.name, gateType: "INPUT", value: nodeAst.name === "1" },
-          };
-          newNodes.push(node);
-          return node;
-        }
-        const variable = variableNodes.get(nodeAst.name);
-        if (!variable) throw new Error(`Variable ${nodeAst.name} was not created.`);
-        return variable;
-      }
-
-      const gateType: GateType = nodeAst.kind === "not" ? "NOT" : nodeAst.kind === "and" ? "AND" : "OR";
-      const node: GateNodeType = {
-        id: nodeId(`expr-${gateType.toLowerCase()}`),
-        type: "gate",
-        position: { x, y },
-        data: { label: gateNames[gateType], gateType, value: false },
-      };
-      newNodes.push(node);
-
-      if (nodeAst.kind === "not") {
-        addWire(build(nodeAst.child, x - 190, y), node, "input-1");
-      } else {
-        addWire(build(nodeAst.left, x - 190, y - 45), node, "input-1");
-        addWire(build(nodeAst.right, x - 190, y + 45), node, "input-2");
-      }
-      return node;
-    };
-
-    const root = build(ast, 560, 280);
-    const output: GateNodeType = {
-      id: nodeId("expr-output"),
-      type: "gate",
-      position: { x: 800, y: 280 },
-      data: { label: "OUTPUT F", gateType: "OUTPUT", value: false },
-    };
-    newNodes.push(output);
-    addWire(root, output);
-
-    const nodeIds = new Set(newNodes.map((node) => node.id));
-    const validEdges = newEdges.filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target));
-
-    remember();
-    setNodes(newNodes);
-    setEdges(validEdges);
-    setSelectedNode(null);
-    setTruthTable(null);
-    setBooleanExpression(`F = ${astToExpression(ast)}`);
-    setValidationProblems([]);
-    setFlowRenderKey((current) => current + 1);
-    setStatus(`Circuit generated: ${newNodes.length} components, ${validEdges.length} wires.`);
-  }, [remember, setNodes, setEdges]);
-
-  const generateCircuitFromExpression = useCallback(() => {
-    try {
-      const parsed = parseBooleanExpression(expressionInput);
-      if (parsed.variables.length > 8) throw new Error("Use at most 8 variables for a generated circuit.");
-      setExpressionVariables(parsed.variables);
-      buildCircuitFromAst(parsed.ast, parsed.variables);
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Invalid Boolean expression.");
-    }
-  }, [expressionInput, buildCircuitFromAst]);
-
-  const generateAnalysisFromExpression = useCallback(() => {
-    try {
-      const parsed = parseBooleanExpression(expressionInput);
-      if (parsed.variables.length === 0 || parsed.variables.length > 6) throw new Error("Expression-to-K-map supports 1 to 6 variables.");
-      setExpressionVariables(parsed.variables);
-      const total = 2 ** parsed.variables.length;
-      const minterms: number[] = [];
-      for (let mask = 0; mask < total; mask++) {
-        const values: Record<string, boolean> = {};
-        parsed.variables.forEach((name, i) => values[name] = Boolean(mask & (1 << (parsed.variables.length - 1 - i))));
-        if (evaluateBooleanAst(parsed.ast, values)) minterms.push(mask);
-      }
-      setKmapVariables(parsed.variables.length);
-      setKmapMinterms(minterms.join(","));
-      setKmapResult(minterms);
-      const solution = solveKMap(minterms, parsed.variables.length);
-      const groups = solution.map((pattern, index) => ({ id: index + 1, pattern, minterms: getPatternMinterms(pattern).filter(m => minterms.includes(m)), term: patternToTerm(pattern) }));
-      setKmapGroups(groups);
-      setKmapExpression(groups.length ? groups.map(g => g.term).join(" + ") : "0");
-
-      const inputs = parsed.variables;
-      const rows: Record<string, number | boolean>[] = [];
-      for (let mask = 0; mask < total; mask++) {
-        const values: Record<string, boolean> = {};
-        inputs.forEach((name, i) => values[name] = Boolean(mask & (1 << (inputs.length - 1 - i))));
-        rows.push({ ...Object.fromEntries(inputs.map(name => [name, values[name]])), F: evaluateBooleanAst(parsed.ast, values) });
-      }
-      setTruthTable({ inputs, outputs: ["F"], rows });
-      setBooleanExpression(`F = ${astToExpression(parsed.ast)}`);
-      setStatus("Expression converted to K-map and truth table.");
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Invalid Boolean expression.");
-    }
-  }, [expressionInput]);
-
-  const generateCircuitFromKMap = useCallback(() => {
-    if (!kmapExpression) {
-      setStatus("Generate a K-map first.");
-      return;
-    }
-    setExpressionInput(kmapExpression);
-    try {
-      const parsed = parseBooleanExpression(kmapExpression);
-      buildCircuitFromAst(parsed.ast, parsed.variables);
-      setStatus("Circuit generated from K-map expression.");
-    } catch {
-      setStatus("Could not convert the K-map expression to a circuit.");
-    }
-  }, [kmapExpression, buildCircuitFromAst]);
-
-  /* =======================================================
-     UNIVERSAL GATE DESIGNER
-     ======================================================= */
-
-  const generateUniversalCircuit = useCallback(() => {
-    const target = universalTarget as "NOT" | "AND" | "OR" | "NAND" | "NOR" | "XOR" | "XNOR";
-    const basis = universalBasis;
-    const newNodes: GateNodeType[] = [];
-    const newEdges: Edge[] = [];
-    const stamp = Date.now();
-    let nodeCounter = 0;
-    let edgeCounter = 0;
-    const nodeId = (prefix: string) => `${prefix}-${stamp}-${nodeCounter++}`;
-    const edgeId = () => `universal-edge-${stamp}-${edgeCounter++}`;
-
-    const a: GateNodeType = { id: nodeId("universal-A"), type: "gate", position: { x: 40, y: 190 }, data: { label: "A", gateType: "INPUT", value: false } };
-    const b: GateNodeType = { id: nodeId("universal-B"), type: "gate", position: { x: 40, y: 370 }, data: { label: "B", gateType: "INPUT", value: false } };
-    newNodes.push(a, b);
-
-    const makeGate = (left: GateNodeType, right: GateNodeType, x: number, y: number) => {
-      const node: GateNodeType = { id: nodeId(`universal-${basis.toLowerCase()}`), type: "gate", position: { x, y }, data: { label: basis, gateType: basis, value: false } };
-      newNodes.push(node);
-      newEdges.push({ id: edgeId(), source: left.id, target: node.id, targetHandle: "input-1", animated: true });
-      newEdges.push({ id: edgeId(), source: right.id, target: node.id, targetHandle: "input-2", animated: true });
-      return node;
-    };
-    const inv = (input: GateNodeType, x: number, y: number) => makeGate(input, input, x, y);
-    const gate = (left: GateNodeType, right: GateNodeType, x: number, y: number) => makeGate(left, right, x, y);
-
-    const buildNand = (name: string, x: number, y: number): GateNodeType => {
-      switch (name) {
-        case "NOT": return inv(a, x, y);
-        case "AND": { const n = gate(a, b, x, y); return gate(n, n, x + 190, y); }
-        case "OR": { const na = inv(a, x, y - 90); const nb = inv(b, x, y + 90); return gate(na, nb, x + 190, y); }
-        case "NOR": { const o = buildNand("OR", x, y); return gate(o, o, x + 380, y); }
-        case "XOR": { const p = gate(a, b, x, y - 90); const q = gate(a, p, x + 190, y - 90); const r = gate(b, p, x + 190, y + 90); return gate(q, r, x + 380, y); }
-        case "XNOR": { const xnode = buildNand("XOR", x, y); return gate(xnode, xnode, x + 570, y); }
-        default: return gate(a, b, x, y);
-      }
-    };
-
-    const buildNor = (name: string, x: number, y: number): GateNodeType => {
-      switch (name) {
-        case "NOT": return inv(a, x, y);
-        case "OR": { const n = gate(a, b, x, y); return gate(n, n, x + 190, y); }
-        case "AND": { const na = inv(a, x, y - 90); const nb = inv(b, x, y + 90); return gate(na, nb, x + 190, y); }
-        case "NAND": { const an = buildNor("AND", x, y); return gate(an, an, x + 380, y); }
-        case "XOR": { const p = gate(a, b, x, y); const q = gate(a, p, x + 190, y - 90); const r = gate(b, p, x + 190, y + 90); const xnorNode = gate(q, r, x + 380, y); return gate(xnorNode, xnorNode, x + 570, y); }
-        case "XNOR": { const p = gate(a, b, x, y); const q = gate(a, p, x + 190, y - 90); const r = gate(b, p, x + 190, y + 90); return gate(q, r, x + 380, y); }
-        default: return gate(a, b, x, y);
-      }
-    };
-
-    const root = basis === "NAND"
-      ? (target === "NAND" ? gate(a, b, 560, 280) : buildNand(target, 300, 280))
-      : (target === "NOR" ? gate(a, b, 560, 280) : buildNor(target, 300, 280));
-
-    const output: GateNodeType = { id: nodeId("universal-output"), type: "gate", position: { x: root.position.x + 230, y: 280 }, data: { label: `OUTPUT ${target}`, gateType: "OUTPUT", value: false } };
-    newNodes.push(output);
-    newEdges.push({ id: edgeId(), source: root.id, target: output.id, animated: true });
-
-    const expressionMap: Record<string, string> = basis === "NAND" ? {
-      NOT: "A' = A NAND A",
-      AND: "A·B = (A NAND B) NAND (A NAND B)",
-      OR: "A+B = (A NAND A) NAND (B NAND B)",
-      NAND: "A NAND B",
-      NOR: "[(A NAND A) NAND (B NAND B)] NAND [(A NAND A) NAND (B NAND B)]",
-      XOR: "A⊕B = [A NAND (A NAND B)] NAND [B NAND (A NAND B)]",
-      XNOR: "A⊙B = XOR NAND XOR",
-    } : {
-      NOT: "A' = A NOR A",
-      OR: "A+B = (A NOR B) NOR (A NOR B)",
-      AND: "A·B = (A NOR A) NOR (B NOR B)",
-      NAND: "[(A NOR A) NOR (B NOR B)] NOR [(A NOR A) NOR (B NOR B)]",
-      NOR: "A NOR B",
-      XOR: "A⊕B = XNOR NOR XNOR, where XNOR = [A NOR (A NOR B)] NOR [B NOR (A NOR B)]",
-      XNOR: "A⊙B = [A NOR (A NOR B)] NOR [B NOR (A NOR B)]",
-    };
-
-    setUniversalExpression(expressionMap[target]);
-    remember();
-    setNodes(newNodes);
-    setEdges(newEdges);
-    setSelectedNode(null);
-    setValidationProblems([]);
-    setFlowRenderKey((current) => current + 1);
-    setStatus(`${target} generated using ${basis} gates.`);
-  }, [universalBasis, universalTarget, remember, setNodes, setEdges]);
-
-  /* =======================================================
-     NUMBER / CODE CONVERTERS
-     ======================================================= */
-
-  const runConverter = useCallback(() => {
-    try {
-      setConverterError("");
-      const from = converterFrom;
-      const to = converterTo;
-      const value = converterValue.trim();
-      if (!value) throw new Error("Enter a value.");
-
-      if (from === "gray" || to === "gray") {
-        if (from === "binary" && to === "gray") {
-          setConverterResult(binaryToGray(value));
-          return;
-        }
-        if (from === "gray" && to === "binary") {
-          setConverterResult(grayToBinary(value));
-          return;
-        }
-        throw new Error("Gray conversion is available only between Binary and Gray Code.");
-      }
-
-      const bases: Record<string, number> = { binary: 2, octal: 8, decimal: 10, hexadecimal: 16 };
-      const decimal = baseToDecimal(value, bases[from]);
-      setConverterResult(decimalToBase(decimal, bases[to]));
-    } catch (error) {
-      setConverterResult("");
-      setConverterError(error instanceof Error ? error.message : "Conversion failed.");
-    }
-  }, [converterFrom, converterTo, converterValue]);
-
   /* =======================================================
      SAVE
      ======================================================= */
@@ -3538,37 +3102,62 @@ function CircuitDesignerContent() {
      ======================================================= */
 
   const validateCircuit = () => {
-    const problems: string[] = [];
-    const nodeMap = new Map(nodes.map((node) => [node.id, node]));
-
-    edges.forEach((edge) => {
-      const source = nodeMap.get(edge.source);
-      const target = nodeMap.get(edge.target);
-      if (!source || !target) {
-        problems.push(`Wire ${edge.id} references a missing component.`);
-        return;
-      }
-      if (source.data.gateType === "OUTPUT") problems.push(`${source.data.label}: OUTPUT cannot drive another component.`);
-      if (target.data.gateType === "INPUT") problems.push(`${target.data.label}: INPUT cannot receive a wire.`);
-    });
+    const problems: string[] =
+      [];
 
     nodes.forEach((node) => {
-      const type = node.data.gateType;
-      if (type === "INPUT") return;
-      if (type === "OUTPUT") {
-        if (!edges.some((edge) => edge.target === node.id)) problems.push(`${node.data.label}: output has no source.`);
+      const type =
+        node.data.gateType;
+
+      if (
+        type === "INPUT" ||
+        type === "OUTPUT"
+      ) {
         return;
       }
-      getInputHandleIds(type).forEach((handle) => {
-        const matches = edges.filter((edge) => edge.target === node.id && edge.targetHandle === handle);
-        if (!matches.length) problems.push(`${node.data.label}: ${handle} is unconnected.`);
-        if (matches.length > 1) problems.push(`${node.data.label}: ${handle} has multiple sources.`);
-      });
+
+      const expected =
+        ["AND", "OR", "NAND", "NOR", "XOR", "XNOR"].includes(type)
+          ? Array.from(
+              { length: Math.max(2, Math.min(8, node.data.inputCount ?? 2)) },
+              (_, index) => `input-${index + 1}`
+            )
+          : getInputHandleIds(type);
+
+      expected.forEach(
+        (handle) => {
+          const connected =
+            edges.some(
+              (edge) =>
+                edge.target ===
+                  node.id &&
+                edge.targetHandle ===
+                  handle
+            );
+
+          if (!connected) {
+            problems.push(
+              `${node.data.label}: ${handle} is unconnected`
+            );
+          }
+        }
+      );
     });
 
-    const unique = [...new Set(problems)];
-    setValidationProblems(unique);
-    setStatus(unique.length ? `❌ ${unique.length} circuit issue(s) found.` : "✓ Circuit validation passed. No connection errors found.");
+    if (!problems.length) {
+      setStatus(
+        "Circuit validation passed."
+      );
+    } else {
+      setStatus(
+        `${problems.length} connection issue(s) found.`
+      );
+
+      alert(
+        "LogicLab validation:\n\n" +
+          problems.join("\n")
+      );
+    }
   };
 
   /* =======================================================
@@ -3745,6 +3334,38 @@ function CircuitDesignerContent() {
   ]);
 
   /* =======================================================
+     VERILOG GENERATION
+     ======================================================= */
+
+  const generateVerilogCode = useCallback(() => {
+    try {
+      const code = generateVerilog(nodes, edges, verilogStyle);
+      setVerilogCode(code);
+      setShowVerilog(true);
+      setStatus("Verilog generated successfully.");
+    } catch (error) {
+      console.error(error);
+      setStatus("Could not generate Verilog for this circuit.");
+    }
+  }, [nodes, edges, verilogStyle]);
+
+  const copyVerilog = useCallback(async () => {
+    if (!verilogCode) return;
+    try {
+      await navigator.clipboard.writeText(verilogCode);
+      setStatus("Verilog copied to clipboard.");
+    } catch {
+      setStatus("Clipboard access was blocked by the browser.");
+    }
+  }, [verilogCode]);
+
+  const downloadVerilog = useCallback(() => {
+    if (!verilogCode) return;
+    downloadText("logiclab_circuit.v", verilogCode, "text/plain");
+    setStatus("Verilog file downloaded.");
+  }, [verilogCode]);
+
+  /* =======================================================
      SELECTED NODE PREVIEW
      ======================================================= */
 
@@ -3902,6 +3523,10 @@ function CircuitDesignerContent() {
             }
           >
             Validate
+          </button>
+
+          <button onClick={generateVerilogCode}>
+            Verilog
           </button>
 
           <button
@@ -4138,7 +3763,6 @@ function CircuitDesignerContent() {
           </div>
 
           <ReactFlow
-            key={flowRenderKey}
             nodes={nodes}
             edges={edges}
             onNodesChange={
@@ -4357,6 +3981,29 @@ function CircuitDesignerContent() {
                   </div>
                 )}
 
+                {["AND", "OR", "NAND", "NOR", "XOR", "XNOR"].includes(selectedNode.data.gateType) && (
+                  <>
+                    <label>Input Count</label>
+                    <input
+                      type="number"
+                      min={2}
+                      max={8}
+                      value={selectedNode.data.inputCount ?? 2}
+                      onChange={(event) => {
+                        const count = Math.max(2, Math.min(8, Number(event.target.value) || 2));
+                        remember();
+                        setNodes((current) => current.map((node) =>
+                          node.id === selectedNode.id
+                            ? { ...node, data: { ...node.data, inputCount: count } }
+                            : node
+                        ));
+                        setSelectedNode((current) => current ? { ...current, data: { ...current.data, inputCount: count } } : current);
+                      }}
+                    />
+                    <div className="tool-note">2–8 inputs. Existing connections are preserved; connect the new handles as needed.</div>
+                  </>
+                )}
+
                 <div className="output-preview">
                   {
                     selectedOutputPreview
@@ -4433,14 +4080,6 @@ function CircuitDesignerContent() {
               <option value={4}>
                 4 Variables
               </option>
-
-              <option value={5}>
-                5 Variables
-              </option>
-
-              <option value={6}>
-                6 Variables
-              </option>
             </select>
 
             <label className="small-label">
@@ -4504,7 +4143,10 @@ function CircuitDesignerContent() {
                   )}
                 </div>
 
-                {kmapVariables <= 4 && (
+                {/* =========================================
+                    K-MAP GRID
+                    ========================================= */}
+
                 <div
                   style={{
                     display:
@@ -4701,48 +4343,6 @@ function CircuitDesignerContent() {
                   )}
                 </div>
 
-                )}
-
-                {kmapVariables >= 5 && (
-                  <div className="kmap-multi-map-container">
-                    <div className="kmap-map-note">
-                      {kmapVariables === 5
-                        ? "Two linked 4-variable maps — A = 0 and A = 1"
-                        : "Four linked 4-variable maps — AB = 00, 01, 11, 10"}
-                    </div>
-                    <div className="kmap-multi-map-grid">
-                      {kmapLayout.mapBits.map((mapBits) => (
-                        <div className="kmap-submap" key={`map-${mapBits}`}>
-                          <div className="kmap-submap-title">
-                            {kmapLayout.mapVariables.join("")} = {mapBits}
-                          </div>
-                          <div className="kmap-subgrid" style={{ gridTemplateColumns: `36px repeat(${kmapLayout.colBits.length}, minmax(32px, 1fr))` }}>
-                            <div />
-                            {kmapLayout.colBits.map((bits) => <div key={`c-${mapBits}-${bits}`} className="kmap-axis">{bits}</div>)}
-                            {kmapLayout.rowBits.map((rowBits) => (
-                              <React.Fragment key={`r-${mapBits}-${rowBits}`}>
-                                <div className="kmap-axis">{rowBits}</div>
-                                {kmapLayout.colBits.map((colBits) => {
-                                  const minterm = getMintermFromCell(rowBits, colBits, mapBits);
-                                  const active = kmapResult.includes(minterm);
-                                  const cellGroups = kmapGroups.filter((group) => group.minterms.includes(minterm));
-                                  return (
-                                    <div key={`${mapBits}-${rowBits}-${colBits}`} className={active ? "kmap-cell active" : "kmap-cell"}>
-                                      <span className="kmap-minterm-label">m{minterm}</span>
-                                      <strong>{active ? "1" : "0"}</strong>
-                                      {cellGroups.length > 0 && <span className="kmap-group-badge">{cellGroups.map((group) => `G${group.id}`).join(" ")}</span>}
-                                    </div>
-                                  );
-                                })}
-                              </React.Fragment>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {/* =========================================
                     ROW / COLUMN VARIABLES
                     ========================================= */}
@@ -4933,70 +4533,6 @@ function CircuitDesignerContent() {
           </div>
 
           {/* =================================================
-              BOOLEAN / K-MAP GENERATORS
-              ================================================= */}
-
-          <div className="analysis-panel feature-panel">
-            <div className="panel-heading"><h2>Design from Expression</h2></div>
-            <textarea className="logic-expression-input" value={expressionInput} onChange={(event) => setExpressionInput(event.target.value)} placeholder="Example: A'B + AC" rows={3} />
-            <div className="feature-button-grid">
-              <button className="full" onClick={generateCircuitFromExpression}>Expression → Circuit</button>
-              <button className="full" onClick={generateAnalysisFromExpression}>Expression → K-Map + Truth Table</button>
-            </div>
-            {expressionVariables.length > 0 && <div className="tool-note">Variables: {expressionVariables.join(", ")}</div>}
-          </div>
-
-          <div className="analysis-panel feature-panel">
-            <div className="panel-heading"><h2>K-Map → Circuit</h2></div>
-            <button className="full" onClick={generateCircuitFromKMap}>Generate Circuit from Current K-Map</button>
-          </div>
-
-          <div className="analysis-panel feature-panel">
-            <div className="panel-heading"><h2>Number & Code Converter</h2></div>
-            <div className="converter-grid">
-              <select value={converterFrom} onChange={(event) => setConverterFrom(event.target.value)}>
-                <option value="binary">Binary</option><option value="octal">Octal</option><option value="decimal">Decimal</option><option value="hexadecimal">Hexadecimal</option><option value="gray">Gray Code</option>
-              </select>
-              <select value={converterTo} onChange={(event) => setConverterTo(event.target.value)}>
-                <option value="binary">Binary</option><option value="octal">Octal</option><option value="decimal">Decimal</option><option value="hexadecimal">Hexadecimal</option><option value="gray">Gray Code</option>
-              </select>
-            </div>
-            <input value={converterValue} onChange={(event) => setConverterValue(event.target.value)} placeholder="Enter value" />
-            <button className="full" onClick={runConverter}>Convert</button>
-            {converterResult && <div className="conversion-result">Result: {converterResult}</div>}
-            {converterError && <div className="tool-error">{converterError}</div>}
-            <div className="tool-note">Supports Binary, Octal, Decimal, Hexadecimal and Binary ↔ Gray Code.</div>
-          </div>
-
-          {/* =================================================
-              UNIVERSAL GATE DESIGNER
-              ================================================= */}
-
-          <div className="analysis-panel feature-panel">
-            <div className="panel-heading"><h2>Universal Gate Designer</h2></div>
-            <div className="tool-note">Build another gate using only NAND or only NOR gates.</div>
-            <label className="small-label">Target Gate</label>
-            <select value={universalTarget} onChange={(event) => setUniversalTarget(event.target.value)}>
-              <option value="NOT">NOT</option><option value="AND">AND</option><option value="OR">OR</option><option value="NAND">NAND</option><option value="NOR">NOR</option><option value="XOR">XOR</option><option value="XNOR">XNOR</option>
-            </select>
-            <label className="small-label">Universal Gate</label>
-            <select value={universalBasis} onChange={(event) => setUniversalBasis(event.target.value as "NAND" | "NOR")}>
-              <option value="NAND">NAND only</option><option value="NOR">NOR only</option>
-            </select>
-            <button className="full" onClick={generateUniversalCircuit}>Generate Universal-Gate Circuit</button>
-            {universalExpression && <div className="universal-expression-box"><strong>Conversion</strong><div>{universalExpression}</div></div>}
-          </div>
-
-          {/* =================================================
-              CIRCUIT VALIDATION
-              ================================================= */}
-
-          <div className="analysis-panel validation-panel">
-            <div className="panel-heading"><h2>Circuit Validation</h2><button onClick={validateCircuit}>Check</button></div>
-            {validationProblems.length === 0 ? <div className="validation-ok">✓ No connection errors detected.</div> : <div className="validation-errors"><strong>{validationProblems.length} issue(s)</strong>{validationProblems.map((problem, index) => <div key={`${problem}-${index}`}>• {problem}</div>)}</div>}
-          </div>
-
-          {/* =================================================
               TRUTH TABLE
               ================================================= */}
 
@@ -5082,6 +4618,39 @@ function CircuitDesignerContent() {
           )}
         </aside>
       </main>
+
+      {showVerilog && (
+        <div className="verilog-modal-backdrop" onMouseDown={() => setShowVerilog(false)}>
+          <div className="verilog-modal" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="verilog-modal-header">
+              <div>
+                <strong>Verilog Generator</strong>
+                <span>Export the current LogicLab circuit as synthesizable-style Verilog.</span>
+              </div>
+              <button className="verilog-close" onClick={() => setShowVerilog(false)}>×</button>
+            </div>
+
+            <div className="verilog-toolbar">
+              <select value={verilogStyle} onChange={(event) => {
+                const style = event.target.value as VerilogStyle;
+                setVerilogStyle(style);
+                setVerilogCode(generateVerilog(nodes, edges, style));
+              }}>
+                <option value="behavioral">Behavioral / assign</option>
+                <option value="gate">Gate-level primitives</option>
+              </select>
+              <div className="verilog-actions">
+                <button onClick={generateVerilogCode}>Regenerate</button>
+                <button onClick={copyVerilog}>Copy</button>
+                <button className="primary" onClick={downloadVerilog}>Download .v</button>
+              </div>
+            </div>
+
+            <textarea className="verilog-code" value={verilogCode} readOnly spellCheck={false} />
+            <div className="verilog-footer">Inputs and outputs are derived from your INPUT / OUTPUT components. Multi-output blocks are emitted with named internal wires.</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
