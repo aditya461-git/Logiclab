@@ -47,7 +47,6 @@ export type GateNodeData = {
   label: string;
   gateType: GateType;
   value?: boolean;
-  inputCount?: number;
   outputValues?: Record<
     string,
     boolean
@@ -765,31 +764,56 @@ export default function GateNode({
           : "logic-low"
       }`}
     >
-      {["AND", "OR", "NAND", "NOR", "XOR", "XNOR"].includes(data.gateType) && (
+      {[
+        "AND",
+        "OR",
+        "NAND",
+        "NOR",
+        "XOR",
+        "XNOR",
+      ].includes(
+        data.gateType
+      ) && (
         <>
-          {Array.from(
-            { length: Math.max(2, Math.min(8, data.inputCount ?? 2)) },
-            (_, index) => {
-              const count = Math.max(2, Math.min(8, data.inputCount ?? 2));
-              const top = count === 2
-                ? (index === 0 ? 35 : 65)
-                : 12 + index * (76 / (count - 1));
-              return (
-                <React.Fragment key={`input-${index + 1}`}>
-                  <Handle
-                    type="target"
-                    position={Position.Left}
-                    id={`input-${index + 1}`}
-                    style={{ top: `${top}%` }}
-                    className="logic-handle"
-                  />
-                  <Label style={{ top: `${top}%` }}>
-                    {String.fromCharCode(65 + index)}
-                  </Label>
-                </React.Fragment>
-              );
+          <Handle
+            type="target"
+            position={
+              Position.Left
             }
-          )}
+            id="input-1"
+            style={{
+              top: "35%",
+            }}
+            className="logic-handle"
+          />
+
+          <Handle
+            type="target"
+            position={
+              Position.Left
+            }
+            id="input-2"
+            style={{
+              top: "65%",
+            }}
+            className="logic-handle"
+          />
+
+          <Label
+            style={{
+              top: "35%",
+            }}
+          >
+            A
+          </Label>
+
+          <Label
+            style={{
+              top: "65%",
+            }}
+          >
+            B
+          </Label>
         </>
       )}
 
