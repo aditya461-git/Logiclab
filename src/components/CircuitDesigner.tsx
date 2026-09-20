@@ -1114,6 +1114,8 @@ const KMAP_VARIABLE_NAMES = [
   "B",
   "C",
   "D",
+  "E",
+  "F",
 ];
 
 const KMAP_GRAY_CODES: Record<
@@ -1733,44 +1735,67 @@ function solveKMap(
 function getKMapLayout(
   variableCount: number
 ) {
-  if (
-    variableCount ===
-    2
-  ) {
+  if (variableCount === 2) {
     return {
       rowBits: KMAP_GRAY_CODES[1],
       colBits: KMAP_GRAY_CODES[1],
       rowVariables: ["A"],
       colVariables: ["B"],
+      mapVariables: [] as string[],
+      mapBits: [""] as string[],
     };
   }
 
-  if (
-    variableCount ===
-    3
-  ) {
+  if (variableCount === 3) {
     return {
       rowBits: KMAP_GRAY_CODES[1],
       colBits: KMAP_GRAY_CODES[2],
       rowVariables: ["A"],
       colVariables: ["B", "C"],
+      mapVariables: [] as string[],
+      mapBits: [""] as string[],
+    };
+  }
+
+  if (variableCount === 4) {
+    return {
+      rowBits: KMAP_GRAY_CODES[2],
+      colBits: KMAP_GRAY_CODES[2],
+      rowVariables: ["A", "B"],
+      colVariables: ["C", "D"],
+      mapVariables: [] as string[],
+      mapBits: [""] as string[],
+    };
+  }
+
+  if (variableCount === 5) {
+    return {
+      rowBits: KMAP_GRAY_CODES[2],
+      colBits: KMAP_GRAY_CODES[2],
+      rowVariables: ["B", "C"],
+      colVariables: ["D", "E"],
+      mapVariables: ["A"],
+      mapBits: ["0", "1"],
     };
   }
 
   return {
     rowBits: KMAP_GRAY_CODES[2],
     colBits: KMAP_GRAY_CODES[2],
-    rowVariables: ["A", "B"],
-    colVariables: ["C", "D"],
+    rowVariables: ["C", "D"],
+    colVariables: ["E", "F"],
+    mapVariables: ["A", "B"],
+    mapBits: KMAP_GRAY_CODES[2],
   };
 }
 
 function getMintermFromCell(
   rowBits: string,
-  colBits: string
+  colBits: string,
+  mapBits = ""
 ): number {
   return parseInt(
-    rowBits + colBits,
+    mapBits + rowBits + colBits,
     2
   );
 }
@@ -1995,6 +2020,12 @@ function CircuitDesignerContent() {
   const [converterResult, setConverterResult] = useState("");
   const [converterError, setConverterError] = useState("");
 
+  const [universalTarget, setUniversalTarget] = useState("OR");
+  const [universalBasis, setUniversalBasis] = useState<"NAND" | "NOR">("NAND");
+  const [universalExpression, setUniversalExpression] = useState("");
+  const [validationProblems, setValidationProblems] = useState<string[]>([]);
+  const [flowRenderKey, setFlowRenderKey] = useState(0);
+
   const [history, setHistory] =
     useState<HistoryState[]>([]);
 
@@ -2085,105 +2116,58 @@ function CircuitDesignerContent() {
   const onConnect =
     useCallback(
       (connection: Connection) => {
-        if (
-          !connection.source ||
-          !connection.target
-        ) {
+        if (!connection.source || !connection.target) return;
+
+        const sourceNode = nodes.find((node) => node.id === connection.source);
+        const targetNode = nodes.find((node) => node.id === connection.target);
+        if (!sourceNode || !targetNode) return;
+
+        const fail = (message: string) => {
+          setValidationProblems([message]);
+          setStatus(`❌ ${message}`);
+        };
+
+        if (sourceNode.data.gateType === "OUTPUT") {
+          fail("An OUTPUT cannot be used as a source.");
+          return;
+        }
+        if (targetNode.data.gateType === "INPUT") {
+          fail("An INPUT cannot be used as a target.");
+          return;
+        }
+        if (connection.source === connection.target) {
+          fail("A component cannot connect to itself.");
           return;
         }
 
-        const sourceNode =
-          nodes.find(
-            (node) =>
-              node.id ===
-              connection.source
-          );
-
-        const targetNode =
-          nodes.find(
-            (node) =>
-              node.id ===
-              connection.target
-          );
-
-        if (
-          !sourceNode ||
-          !targetNode
-        ) {
-          return;
-        }
-
-        if (
-          sourceNode.data
-            .gateType ===
-          "OUTPUT"
-        ) {
-          setStatus(
-            "OUTPUT nodes cannot be sources."
-          );
-          return;
-        }
-
-        if (
-          targetNode.data
-            .gateType ===
-          "INPUT"
-        ) {
-          setStatus(
-            "INPUT nodes cannot be targets."
-          );
-          return;
-        }
-
-        if (
-          connection.source ===
-          connection.target
-        ) {
-          setStatus(
-            "A component cannot connect to itself."
-          );
-          return;
-        }
-
-        const duplicate =
-          edges.some(
-            (edge) =>
-              edge.source ===
-                connection.source &&
-              edge.target ===
-                connection.target &&
-              edge.sourceHandle ===
-                connection.sourceHandle &&
-              edge.targetHandle ===
-                connection.targetHandle
-          );
-
+        const duplicate = edges.some((edge) =>
+          edge.source === connection.source &&
+          edge.target === connection.target &&
+          edge.sourceHandle === connection.sourceHandle &&
+          edge.targetHandle === connection.targetHandle
+        );
         if (duplicate) {
+          fail("This exact connection already exists.");
           return;
         }
 
+        const targetAlreadyDriven = edges.some((edge) =>
+          edge.target === connection.target &&
+          edge.targetHandle === connection.targetHandle
+        );
+        if (targetAlreadyDriven) {
+          fail(`${targetNode.data.label}: this input is already connected. Disconnect it before adding another source.`);
+          return;
+        }
+
+        setValidationProblems([]);
         remember();
-
         setEdges((current) =>
-          addEdge(
-            {
-              ...connection,
-              animated: true,
-            },
-            current
-          )
+          addEdge({ ...connection, animated: true }, current)
         );
-
-        setStatus(
-          "Connection created."
-        );
+        setStatus("Connection created.");
       },
-      [
-        nodes,
-        edges,
-        remember,
-        setEdges,
-      ]
+      [nodes, edges, remember, setEdges]
     );
 
   /* =======================================================
@@ -2708,6 +2692,8 @@ function CircuitDesignerContent() {
       setTruthTable(null);
       setBooleanExpression("");
       setSelectedNode(null);
+      setValidationProblems([]);
+      setFlowRenderKey((current) => current + 1);
 
       setKmapResult([]);
       setKmapGroups([]);
@@ -2742,6 +2728,8 @@ function CircuitDesignerContent() {
       setTruthTable(null);
       setBooleanExpression("");
       setSelectedNode(null);
+      setValidationProblems([]);
+      setFlowRenderKey((current) => current + 1);
 
       setKmapResult([]);
       setKmapGroups([]);
@@ -3128,12 +3116,27 @@ function CircuitDesignerContent() {
     const newEdges: Edge[] = [];
     const variableNodes = new Map<string, GateNodeType>();
     let nodeCounter = 0;
+    let edgeCounter = 0;
+    const stamp = Date.now();
 
-    variables.forEach((name, i) => {
+    const nodeId = (prefix: string) => `${prefix}-${stamp}-${nodeCounter++}`;
+    const edgeId = () => `expr-edge-${stamp}-${edgeCounter++}`;
+
+    const addWire = (source: GateNodeType, target: GateNodeType, targetHandle?: string) => {
+      newEdges.push({
+        id: edgeId(),
+        source: source.id,
+        target: target.id,
+        ...(targetHandle ? { targetHandle } : {}),
+        animated: true,
+      });
+    };
+
+    variables.forEach((name, index) => {
       const node: GateNodeType = {
-        id: `expr-input-${name}-${Date.now()}-${i}`,
+        id: nodeId(`expr-input-${name}`),
         type: "gate",
-        position: { x: 60, y: 80 + i * 100 },
+        position: { x: 60, y: 70 + index * 90 },
         data: { label: name, gateType: "INPUT", value: false },
       };
       variableNodes.set(name, node);
@@ -3143,16 +3146,23 @@ function CircuitDesignerContent() {
     const build = (nodeAst: BoolAst, x: number, y: number): GateNodeType => {
       if (nodeAst.kind === "var") {
         if (nodeAst.name === "0" || nodeAst.name === "1") {
-          const node: GateNodeType = { id: `const-${nodeCounter++}-${Date.now()}`, type: "gate", position: { x, y }, data: { label: nodeAst.name, gateType: "INPUT", value: nodeAst.name === "1" } };
+          const node: GateNodeType = {
+            id: nodeId("expr-const"),
+            type: "gate",
+            position: { x, y },
+            data: { label: nodeAst.name, gateType: "INPUT", value: nodeAst.name === "1" },
+          };
           newNodes.push(node);
           return node;
         }
-        return variableNodes.get(nodeAst.name)!;
+        const variable = variableNodes.get(nodeAst.name);
+        if (!variable) throw new Error(`Variable ${nodeAst.name} was not created.`);
+        return variable;
       }
 
       const gateType: GateType = nodeAst.kind === "not" ? "NOT" : nodeAst.kind === "and" ? "AND" : "OR";
       const node: GateNodeType = {
-        id: `expr-${gateType.toLowerCase()}-${nodeCounter++}-${Date.now()}`,
+        id: nodeId(`expr-${gateType.toLowerCase()}`),
         type: "gate",
         position: { x, y },
         data: { label: gateNames[gateType], gateType, value: false },
@@ -3160,29 +3170,36 @@ function CircuitDesignerContent() {
       newNodes.push(node);
 
       if (nodeAst.kind === "not") {
-        const source = build(nodeAst.child, x - 180, y);
-        newEdges.push({ id: `edge-${nodeCounter}-${Date.now()}`, source: source.id, target: node.id, targetHandle: "input-1", animated: true });
+        addWire(build(nodeAst.child, x - 190, y), node, "input-1");
       } else {
-        const left = build(nodeAst.left, x - 180, y - 35);
-        const right = build(nodeAst.right, x - 180, y + 35);
-        newEdges.push({ id: `edge-${nodeCounter++}-${Date.now()}`, source: left.id, target: node.id, targetHandle: "input-1", animated: true });
-        newEdges.push({ id: `edge-${nodeCounter++}-${Date.now()}`, source: right.id, target: node.id, targetHandle: "input-2", animated: true });
+        addWire(build(nodeAst.left, x - 190, y - 45), node, "input-1");
+        addWire(build(nodeAst.right, x - 190, y + 45), node, "input-2");
       }
       return node;
     };
 
-    const root = build(ast, 520, 260);
-    const output: GateNodeType = { id: `expr-output-${Date.now()}`, type: "gate", position: { x: 760, y: 260 }, data: { label: "OUTPUT F", gateType: "OUTPUT", value: false } };
+    const root = build(ast, 560, 280);
+    const output: GateNodeType = {
+      id: nodeId("expr-output"),
+      type: "gate",
+      position: { x: 800, y: 280 },
+      data: { label: "OUTPUT F", gateType: "OUTPUT", value: false },
+    };
     newNodes.push(output);
-    newEdges.push({ id: `edge-output-${Date.now()}`, source: root.id, target: output.id, animated: true });
+    addWire(root, output);
+
+    const nodeIds = new Set(newNodes.map((node) => node.id));
+    const validEdges = newEdges.filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target));
 
     remember();
     setNodes(newNodes);
-    setEdges(newEdges);
+    setEdges(validEdges);
     setSelectedNode(null);
     setTruthTable(null);
     setBooleanExpression(`F = ${astToExpression(ast)}`);
-    setStatus("Circuit generated from Boolean expression.");
+    setValidationProblems([]);
+    setFlowRenderKey((current) => current + 1);
+    setStatus(`Circuit generated: ${newNodes.length} components, ${validEdges.length} wires.`);
   }, [remember, setNodes, setEdges]);
 
   const generateCircuitFromExpression = useCallback(() => {
@@ -3199,7 +3216,7 @@ function CircuitDesignerContent() {
   const generateAnalysisFromExpression = useCallback(() => {
     try {
       const parsed = parseBooleanExpression(expressionInput);
-      if (parsed.variables.length === 0 || parsed.variables.length > 4) throw new Error("Expression-to-K-map supports 1 to 4 variables.");
+      if (parsed.variables.length === 0 || parsed.variables.length > 6) throw new Error("Expression-to-K-map supports 1 to 6 variables.");
       setExpressionVariables(parsed.variables);
       const total = 2 ** parsed.variables.length;
       const minterms: number[] = [];
@@ -3245,6 +3262,95 @@ function CircuitDesignerContent() {
       setStatus("Could not convert the K-map expression to a circuit.");
     }
   }, [kmapExpression, buildCircuitFromAst]);
+
+  /* =======================================================
+     UNIVERSAL GATE DESIGNER
+     ======================================================= */
+
+  const generateUniversalCircuit = useCallback(() => {
+    const target = universalTarget as "NOT" | "AND" | "OR" | "NAND" | "NOR" | "XOR" | "XNOR";
+    const basis = universalBasis;
+    const newNodes: GateNodeType[] = [];
+    const newEdges: Edge[] = [];
+    const stamp = Date.now();
+    let nodeCounter = 0;
+    let edgeCounter = 0;
+    const nodeId = (prefix: string) => `${prefix}-${stamp}-${nodeCounter++}`;
+    const edgeId = () => `universal-edge-${stamp}-${edgeCounter++}`;
+
+    const a: GateNodeType = { id: nodeId("universal-A"), type: "gate", position: { x: 40, y: 190 }, data: { label: "A", gateType: "INPUT", value: false } };
+    const b: GateNodeType = { id: nodeId("universal-B"), type: "gate", position: { x: 40, y: 370 }, data: { label: "B", gateType: "INPUT", value: false } };
+    newNodes.push(a, b);
+
+    const makeGate = (left: GateNodeType, right: GateNodeType, x: number, y: number) => {
+      const node: GateNodeType = { id: nodeId(`universal-${basis.toLowerCase()}`), type: "gate", position: { x, y }, data: { label: basis, gateType: basis, value: false } };
+      newNodes.push(node);
+      newEdges.push({ id: edgeId(), source: left.id, target: node.id, targetHandle: "input-1", animated: true });
+      newEdges.push({ id: edgeId(), source: right.id, target: node.id, targetHandle: "input-2", animated: true });
+      return node;
+    };
+    const inv = (input: GateNodeType, x: number, y: number) => makeGate(input, input, x, y);
+    const gate = (left: GateNodeType, right: GateNodeType, x: number, y: number) => makeGate(left, right, x, y);
+
+    const buildNand = (name: string, x: number, y: number): GateNodeType => {
+      switch (name) {
+        case "NOT": return inv(a, x, y);
+        case "AND": { const n = gate(a, b, x, y); return gate(n, n, x + 190, y); }
+        case "OR": { const na = inv(a, x, y - 90); const nb = inv(b, x, y + 90); return gate(na, nb, x + 190, y); }
+        case "NOR": { const o = buildNand("OR", x, y); return gate(o, o, x + 380, y); }
+        case "XOR": { const p = gate(a, b, x, y - 90); const q = gate(a, p, x + 190, y - 90); const r = gate(b, p, x + 190, y + 90); return gate(q, r, x + 380, y); }
+        case "XNOR": { const xnode = buildNand("XOR", x, y); return gate(xnode, xnode, x + 570, y); }
+        default: return gate(a, b, x, y);
+      }
+    };
+
+    const buildNor = (name: string, x: number, y: number): GateNodeType => {
+      switch (name) {
+        case "NOT": return inv(a, x, y);
+        case "OR": { const n = gate(a, b, x, y); return gate(n, n, x + 190, y); }
+        case "AND": { const na = inv(a, x, y - 90); const nb = inv(b, x, y + 90); return gate(na, nb, x + 190, y); }
+        case "NAND": { const an = buildNor("AND", x, y); return gate(an, an, x + 380, y); }
+        case "XOR": { const p = gate(a, b, x, y); const q = gate(a, p, x + 190, y - 90); const r = gate(b, p, x + 190, y + 90); const xnorNode = gate(q, r, x + 380, y); return gate(xnorNode, xnorNode, x + 570, y); }
+        case "XNOR": { const p = gate(a, b, x, y); const q = gate(a, p, x + 190, y - 90); const r = gate(b, p, x + 190, y + 90); return gate(q, r, x + 380, y); }
+        default: return gate(a, b, x, y);
+      }
+    };
+
+    const root = basis === "NAND"
+      ? (target === "NAND" ? gate(a, b, 560, 280) : buildNand(target, 300, 280))
+      : (target === "NOR" ? gate(a, b, 560, 280) : buildNor(target, 300, 280));
+
+    const output: GateNodeType = { id: nodeId("universal-output"), type: "gate", position: { x: root.position.x + 230, y: 280 }, data: { label: `OUTPUT ${target}`, gateType: "OUTPUT", value: false } };
+    newNodes.push(output);
+    newEdges.push({ id: edgeId(), source: root.id, target: output.id, animated: true });
+
+    const expressionMap: Record<string, string> = basis === "NAND" ? {
+      NOT: "A' = A NAND A",
+      AND: "A·B = (A NAND B) NAND (A NAND B)",
+      OR: "A+B = (A NAND A) NAND (B NAND B)",
+      NAND: "A NAND B",
+      NOR: "[(A NAND A) NAND (B NAND B)] NAND [(A NAND A) NAND (B NAND B)]",
+      XOR: "A⊕B = [A NAND (A NAND B)] NAND [B NAND (A NAND B)]",
+      XNOR: "A⊙B = XOR NAND XOR",
+    } : {
+      NOT: "A' = A NOR A",
+      OR: "A+B = (A NOR B) NOR (A NOR B)",
+      AND: "A·B = (A NOR A) NOR (B NOR B)",
+      NAND: "[(A NOR A) NOR (B NOR B)] NOR [(A NOR A) NOR (B NOR B)]",
+      NOR: "A NOR B",
+      XOR: "A⊕B = XNOR NOR XNOR, where XNOR = [A NOR (A NOR B)] NOR [B NOR (A NOR B)]",
+      XNOR: "A⊙B = [A NOR (A NOR B)] NOR [B NOR (A NOR B)]",
+    };
+
+    setUniversalExpression(expressionMap[target]);
+    remember();
+    setNodes(newNodes);
+    setEdges(newEdges);
+    setSelectedNode(null);
+    setValidationProblems([]);
+    setFlowRenderKey((current) => current + 1);
+    setStatus(`${target} generated using ${basis} gates.`);
+  }, [universalBasis, universalTarget, remember, setNodes, setEdges]);
 
   /* =======================================================
      NUMBER / CODE CONVERTERS
@@ -3432,57 +3538,37 @@ function CircuitDesignerContent() {
      ======================================================= */
 
   const validateCircuit = () => {
-    const problems: string[] =
-      [];
+    const problems: string[] = [];
+    const nodeMap = new Map(nodes.map((node) => [node.id, node]));
 
-    nodes.forEach((node) => {
-      const type =
-        node.data.gateType;
-
-      if (
-        type === "INPUT" ||
-        type === "OUTPUT"
-      ) {
+    edges.forEach((edge) => {
+      const source = nodeMap.get(edge.source);
+      const target = nodeMap.get(edge.target);
+      if (!source || !target) {
+        problems.push(`Wire ${edge.id} references a missing component.`);
         return;
       }
-
-      const expected =
-        getInputHandleIds(type);
-
-      expected.forEach(
-        (handle) => {
-          const connected =
-            edges.some(
-              (edge) =>
-                edge.target ===
-                  node.id &&
-                edge.targetHandle ===
-                  handle
-            );
-
-          if (!connected) {
-            problems.push(
-              `${node.data.label}: ${handle} is unconnected`
-            );
-          }
-        }
-      );
+      if (source.data.gateType === "OUTPUT") problems.push(`${source.data.label}: OUTPUT cannot drive another component.`);
+      if (target.data.gateType === "INPUT") problems.push(`${target.data.label}: INPUT cannot receive a wire.`);
     });
 
-    if (!problems.length) {
-      setStatus(
-        "Circuit validation passed."
-      );
-    } else {
-      setStatus(
-        `${problems.length} connection issue(s) found.`
-      );
+    nodes.forEach((node) => {
+      const type = node.data.gateType;
+      if (type === "INPUT") return;
+      if (type === "OUTPUT") {
+        if (!edges.some((edge) => edge.target === node.id)) problems.push(`${node.data.label}: output has no source.`);
+        return;
+      }
+      getInputHandleIds(type).forEach((handle) => {
+        const matches = edges.filter((edge) => edge.target === node.id && edge.targetHandle === handle);
+        if (!matches.length) problems.push(`${node.data.label}: ${handle} is unconnected.`);
+        if (matches.length > 1) problems.push(`${node.data.label}: ${handle} has multiple sources.`);
+      });
+    });
 
-      alert(
-        "LogicLab validation:\n\n" +
-          problems.join("\n")
-      );
-    }
+    const unique = [...new Set(problems)];
+    setValidationProblems(unique);
+    setStatus(unique.length ? `❌ ${unique.length} circuit issue(s) found.` : "✓ Circuit validation passed. No connection errors found.");
   };
 
   /* =======================================================
@@ -4052,6 +4138,7 @@ function CircuitDesignerContent() {
           </div>
 
           <ReactFlow
+            key={flowRenderKey}
             nodes={nodes}
             edges={edges}
             onNodesChange={
@@ -4346,6 +4433,14 @@ function CircuitDesignerContent() {
               <option value={4}>
                 4 Variables
               </option>
+
+              <option value={5}>
+                5 Variables
+              </option>
+
+              <option value={6}>
+                6 Variables
+              </option>
             </select>
 
             <label className="small-label">
@@ -4409,10 +4504,7 @@ function CircuitDesignerContent() {
                   )}
                 </div>
 
-                {/* =========================================
-                    K-MAP GRID
-                    ========================================= */}
-
+                {kmapVariables <= 4 && (
                 <div
                   style={{
                     display:
@@ -4608,6 +4700,48 @@ function CircuitDesignerContent() {
                     )
                   )}
                 </div>
+
+                )}
+
+                {kmapVariables >= 5 && (
+                  <div className="kmap-multi-map-container">
+                    <div className="kmap-map-note">
+                      {kmapVariables === 5
+                        ? "Two linked 4-variable maps — A = 0 and A = 1"
+                        : "Four linked 4-variable maps — AB = 00, 01, 11, 10"}
+                    </div>
+                    <div className="kmap-multi-map-grid">
+                      {kmapLayout.mapBits.map((mapBits) => (
+                        <div className="kmap-submap" key={`map-${mapBits}`}>
+                          <div className="kmap-submap-title">
+                            {kmapLayout.mapVariables.join("")} = {mapBits}
+                          </div>
+                          <div className="kmap-subgrid" style={{ gridTemplateColumns: `36px repeat(${kmapLayout.colBits.length}, minmax(32px, 1fr))` }}>
+                            <div />
+                            {kmapLayout.colBits.map((bits) => <div key={`c-${mapBits}-${bits}`} className="kmap-axis">{bits}</div>)}
+                            {kmapLayout.rowBits.map((rowBits) => (
+                              <React.Fragment key={`r-${mapBits}-${rowBits}`}>
+                                <div className="kmap-axis">{rowBits}</div>
+                                {kmapLayout.colBits.map((colBits) => {
+                                  const minterm = getMintermFromCell(rowBits, colBits, mapBits);
+                                  const active = kmapResult.includes(minterm);
+                                  const cellGroups = kmapGroups.filter((group) => group.minterms.includes(minterm));
+                                  return (
+                                    <div key={`${mapBits}-${rowBits}-${colBits}`} className={active ? "kmap-cell active" : "kmap-cell"}>
+                                      <span className="kmap-minterm-label">m{minterm}</span>
+                                      <strong>{active ? "1" : "0"}</strong>
+                                      {cellGroups.length > 0 && <span className="kmap-group-badge">{cellGroups.map((group) => `G${group.id}`).join(" ")}</span>}
+                                    </div>
+                                  );
+                                })}
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* =========================================
                     ROW / COLUMN VARIABLES
@@ -4832,6 +4966,34 @@ function CircuitDesignerContent() {
             {converterResult && <div className="conversion-result">Result: {converterResult}</div>}
             {converterError && <div className="tool-error">{converterError}</div>}
             <div className="tool-note">Supports Binary, Octal, Decimal, Hexadecimal and Binary ↔ Gray Code.</div>
+          </div>
+
+          {/* =================================================
+              UNIVERSAL GATE DESIGNER
+              ================================================= */}
+
+          <div className="analysis-panel feature-panel">
+            <div className="panel-heading"><h2>Universal Gate Designer</h2></div>
+            <div className="tool-note">Build another gate using only NAND or only NOR gates.</div>
+            <label className="small-label">Target Gate</label>
+            <select value={universalTarget} onChange={(event) => setUniversalTarget(event.target.value)}>
+              <option value="NOT">NOT</option><option value="AND">AND</option><option value="OR">OR</option><option value="NAND">NAND</option><option value="NOR">NOR</option><option value="XOR">XOR</option><option value="XNOR">XNOR</option>
+            </select>
+            <label className="small-label">Universal Gate</label>
+            <select value={universalBasis} onChange={(event) => setUniversalBasis(event.target.value as "NAND" | "NOR")}>
+              <option value="NAND">NAND only</option><option value="NOR">NOR only</option>
+            </select>
+            <button className="full" onClick={generateUniversalCircuit}>Generate Universal-Gate Circuit</button>
+            {universalExpression && <div className="universal-expression-box"><strong>Conversion</strong><div>{universalExpression}</div></div>}
+          </div>
+
+          {/* =================================================
+              CIRCUIT VALIDATION
+              ================================================= */}
+
+          <div className="analysis-panel validation-panel">
+            <div className="panel-heading"><h2>Circuit Validation</h2><button onClick={validateCircuit}>Check</button></div>
+            {validationProblems.length === 0 ? <div className="validation-ok">✓ No connection errors detected.</div> : <div className="validation-errors"><strong>{validationProblems.length} issue(s)</strong>{validationProblems.map((problem, index) => <div key={`${problem}-${index}`}>• {problem}</div>)}</div>}
           </div>
 
           {/* =================================================

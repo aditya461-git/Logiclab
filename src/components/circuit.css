@@ -2534,3 +2534,26 @@ body {
     min-height: 80px;
   }
 }
+
+
+/* =========================================================
+   ADVANCED LOGICLAB TOOLS — K-MAP / UNIVERSAL / VALIDATION
+========================================================= */
+.kmap-multi-map-container { margin-top: 10px; }
+.kmap-map-note { margin-bottom: 8px; padding: 7px 8px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg-panel-2); color: var(--text-secondary); font-size: 10px; line-height: 1.4; }
+.kmap-multi-map-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.kmap-submap { min-width: 0; padding: 7px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-panel-2); }
+.kmap-submap-title { margin-bottom: 6px; color: var(--text); font-size: 10px; font-weight: 800; text-align: center; }
+.kmap-subgrid { display: grid; gap: 3px; width: 100%; }
+.kmap-axis { display: flex; align-items: center; justify-content: center; min-height: 20px; color: var(--text-secondary); font-size: 8px; font-weight: 800; }
+.kmap-subgrid .kmap-cell { position: relative; min-height: 39px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 5px; }
+.kmap-minterm-label { font-size: 7px; opacity: 0.7; }
+.kmap-group-badge { position: absolute; bottom: 1px; font-size: 6px; font-weight: 800; opacity: 0.85; }
+.universal-expression-box { margin-top: 8px; padding: 9px; border: 1px solid var(--border-light); border-radius: 7px; background: var(--bg-card); color: var(--text-secondary); font-size: 11px; line-height: 1.5; word-break: break-word; }
+.universal-expression-box strong { display: block; margin-bottom: 4px; color: var(--text); }
+.validation-panel { border-color: var(--border-light); }
+.validation-ok, .validation-errors { padding: 9px; border-radius: 7px; font-size: 11px; line-height: 1.5; }
+.validation-ok { border: 1px solid rgba(69, 212, 131, 0.3); background: var(--green-soft); color: var(--green); }
+.validation-errors { border: 1px solid rgba(255, 107, 107, 0.3); background: var(--red-soft); color: #ffb1b1; }
+.validation-errors > div { margin-top: 4px; }
+@media (max-width: 760px) { .kmap-multi-map-grid { grid-template-columns: 1fr; } }
